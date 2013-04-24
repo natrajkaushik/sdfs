@@ -1,0 +1,105 @@
+Steps to create a single level CA
+
+A] Create the CA root key and self-signed certificate
+
+1. Create key pair:
+	openssl genrsa -des3 -out root-ca.key 2048
+
+		Generating RSA private key, 2048 bit long modulus
+		.................................................................................................+++
+		......+++
+		e is 65537 (0x10001)
+		Enter pass phrase for root-ca.key: [sdfs]
+		Verifying - Enter pass phrase for root-ca.key: [sdfs]
+
+
+2. Use the key to sign itself:
+	openssl req -new -x509 -days 3650 -key root-ca.key -out root-ca.crt
+
+		Enter pass phrase for root-ca.key:
+		You are about to be asked to enter information that will be incorporated
+		into your certificate request.
+		What you are about to enter is what is called a Distinguished Name or a DN.
+		There are quite a few fields but you can leave some blank
+		For some fields there will be a default value,
+		If you enter '.', the field will be left blank.
+		-----
+		Country Name (2 letter code) [AU]:US
+		State or Province Name (full name) [Some-State]:Georgia
+		Locality Name (eg, city) []:Atlanta
+		Organization Name (eg, company) [Internet Widgits Pty Ltd]:Georgia Institute of Technology
+		Organizational Unit Name (eg, section) []:College of Computing
+		Common Name (e.g. server FQDN or YOUR name) []:Sameer
+		Email Address []:sameer.vijaykar@gatech.edu
+
+
+B] Create the Node key and signing with root CA's certificate
+
+3. Create a key pair for Node A along with a certificate signing request
+	openssl req -newkey rsa:2048 -keyout node_a.key -out node_a.req
+
+		Generating a 2048 bit RSA private key
+		........................................................................+++
+		.............+++
+		writing new private key to 'node_a.key'
+		Enter PEM pass phrase: [nodea]
+		Verifying - Enter PEM pass phrase: [nodea]
+		-----
+		You are about to be asked to enter information that will be incorporated
+		into your certificate request.
+		What you are about to enter is what is called a Distinguished Name or a DN.
+		There are quite a few fields but you can leave some blank
+		For some fields there will be a default value,
+		If you enter '.', the field will be left blank.
+		-----
+		Country Name (2 letter code) [AU]:US
+		State or Province Name (full name) [Some-State]:Georgia
+		Locality Name (eg, city) []:Atlanta
+		Organization Name (eg, company) [Internet Widgits Pty Ltd]:Georgia Institute of Technology
+		Organizational Unit Name (eg, section) []:College of Computing
+		Common Name (e.g. server FQDN or YOUR name) []:Node A
+		Email Address []:node.a@sdfs.scs.gatech.edu
+
+		Please enter the following 'extra' attributes
+		to be sent with your certificate request
+		A challenge password []:
+		An optional company name []:
+
+
+4. Sign the key for Node A with the signing key
+	openssl ca -config openssl.cnf -cert root-ca.crt -keyfile root-ca.key -out node_a.crt -infiles node_a.req
+
+		Using configuration from openssl.cnf
+		Enter pass phrase for root-ca.key:
+		Check that the request matches the signature
+		Signature ok
+		Certificate Details:
+			Serial Number:
+			    01:01:00:11:01
+			Validity
+			    Not Before: Apr 23 19:14:59 2013 GMT
+			    Not After : Apr 23 19:14:59 2014 GMT
+			Subject:
+			    countryName               = US
+			    stateOrProvinceName       = Georgia
+			    organizationName          = Georgia Institute of Technology
+			    organizationalUnitName    = College of Computing
+			    commonName                = Node A
+			    emailAddress              = node.a@sdfs.scs.gatech.edu
+			X509v3 extensions:
+			    X509v3 Basic Constraints: 
+				CA:FALSE
+			    Netscape Comment: 
+				OpenSSL Generated Certificate
+			    X509v3 Subject Key Identifier: 
+				3E:60:60:57:94:99:5F:81:C1:A1:C7:E6:6A:B1:27:C0:C0:DA:2A:72
+			    X509v3 Authority Key Identifier: 
+				keyid:AD:9C:93:DD:F2:05:0F:34:EC:09:EF:66:27:12:45:09:74:4A:CE:C9
+
+		Certificate is to be certified until Apr 23 19:14:59 2014 GMT (365 days)
+		Sign the certificate? [y/n]:y
+
+
+		1 out of 1 certificate requests certified, commit? [y/n]y
+		Write out database with 1 new entries
+		Data Base Updated
