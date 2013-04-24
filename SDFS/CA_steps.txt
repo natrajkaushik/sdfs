@@ -103,3 +103,20 @@ B] Create the Node key and signing with root CA's certificate
 		1 out of 1 certificate requests certified, commit? [y/n]y
 		Write out database with 1 new entries
 		Data Base Updated
+
+**********************************************************************************
+Java Keytool Commands
+
+1) Creating a new keystore
+
+keytool -import -file ..\keydump\node_a.der -keystore node_a.jks -alias node_a
+
+Output: creates a new keystore "node_a.jks" and adds the certificate "node_a.der" into it with the alias "node_a"
+
+Note: Password for keystore can be set in this step
+
+2) Listing certificates in keystore
+
+keytool -list -v -keystore node_a.jks
+
+Output: lists the certificates in the keystore "node_a.jks"
