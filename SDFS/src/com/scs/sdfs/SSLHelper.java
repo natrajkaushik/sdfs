@@ -17,11 +17,12 @@ import javax.net.ssl.TrustManagerFactory;
  */
 public class SSLHelper {
 
+	public static final String TRUSTED_STORE_PATH = "./store/trusted.jks";
+	public static final String TRUSTED_STORE_PASSWORD = "server";
+	public static final String TRUSTED_STORE_TYPE = "JKS";
+	
 	// KeyStore parameters
 	String keyStorePath, keyStoreType, keyStorePass;
-	
-	// TrustedStore parameters
-	String trustedStorePath, trustedStoreType, trustedStorePass;
 	
 	/**
 	 * 
@@ -109,10 +110,12 @@ public class SSLHelper {
 		SSLContext.setDefault(sslContext);
 	}
 	
-	
+	/*
+	 * sets the SSLContext
+	 */
 	public void setSSLContext(){
 		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, keyStorePass, keyStoreType);
-		TrustManager[] trustManagers = this.getTrustManagers(trustedStorePath, trustedStorePass, trustedStoreType);
+		TrustManager[] trustManagers = this.getTrustManagers(TRUSTED_STORE_PATH, TRUSTED_STORE_PASSWORD, TRUSTED_STORE_TYPE);
 		this.setSSLContext(keyManagers, trustManagers);
 	}
 	
@@ -121,28 +124,17 @@ public class SSLHelper {
 	 * @param keyStorePath
 	 * @param keyStoreType
 	 * @param keyStorePass
-	 * @param trustedStorePath
-	 * @param trustedStoreType
-	 * @param trustedStorePass
 	 * @return SSLHelper
 	 */
-	public static SSLHelper getSSLHelper(String keyStorePath, String keyStoreType,
-			String keyStorePass, String trustedStorePath,
-			String trustedStoreType, String trustedStorePass){
-		return new SSLHelper(keyStorePath, keyStoreType, keyStorePass, 
-				trustedStorePath, trustedStoreType, trustedStorePass);
+	public static SSLHelper getSSLHelper(String keyStorePath, String keyStoreType, String keyStorePass){
+		return new SSLHelper(keyStorePath, keyStoreType, keyStorePass);
 	}
 
-	private SSLHelper(String keyStorePath, String keyStoreType,
-			String keyStorePass, String trustedStorePath,
-			String trustedStoreType, String trustedStorePass) {
+	private SSLHelper(String keyStorePath, String keyStoreType, String keyStorePass) {
 		super();
 		this.keyStorePath = keyStorePath;
 		this.keyStoreType = keyStoreType;
 		this.keyStorePass = keyStorePass;
-		this.trustedStorePath = trustedStorePath;
-		this.trustedStoreType = trustedStoreType;
-		this.trustedStorePass = trustedStorePass;
 	}	
 
 }
