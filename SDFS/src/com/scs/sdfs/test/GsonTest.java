@@ -3,10 +3,13 @@ package com.scs.sdfs.test;
 import java.util.ArrayList;
 
 import com.google.gson.Gson;
+import com.scs.sdfs.ErrorCode;
 import com.scs.sdfs.args.CommandArgument;
 import com.scs.sdfs.args.CmdGetFileArgument;
 import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
+import com.scs.sdfs.rspns.CmdGetFileResponse;
+import com.scs.sdfs.rspns.CommandResponse;
 
 public class GsonTest {
 
@@ -35,5 +38,14 @@ public class GsonTest {
 		
 		CommandArgument arg = new CmdGetFileArgument("1234", token);
 		System.out.println(arg.toString());
+		
+		CommandResponse rsp = new CmdGetFileResponse("deleted".getBytes(), ErrorCode.FILE_DELETED);
+		System.out.println(gson.toJson(rsp));
+		
+		String rjson = gson.toJson(rsp);
+		CmdGetFileResponse nrsp = gson.fromJson(rjson, CmdGetFileResponse.class);
+		
+		System.out.println(nrsp.code.msg);
+		System.out.println(new String(nrsp.data));
 	}
 }
