@@ -120,3 +120,13 @@ Note: Password for keystore can be set in this step
 keytool -list -v -keystore node_a.jks
 
 Output: lists the certificates in the keystore "node_a.jks"
+
+3) Deleting certificate from keystore 
+
+keytool -delete -alias node_a -keystore node_a.jks
+
+4) Adding a PKCS entry into keystore. This entry contains both the private key and the certificate in a format that Java understands.
+
+keytool -importkeystore -destkeystore node_a.jks -srckeystore ..\keydump\node_a.p12 -srcstoretype PKCS12 -srcstorepass nodea
+
+
