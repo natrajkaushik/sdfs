@@ -11,5 +11,18 @@ public class DelegationPrimitive {
 	boolean canDelegate;
 	
 	long startEpoch;
-	long duration;
+	long endEpoch;
+	
+	public DelegationPrimitive(String source, String delegate, String uID, 
+			boolean canRead, boolean canWrite, boolean canDelegate, 
+			long startEpoch, long duration) {
+		this.source = source;
+		this.delegate = delegate;
+		UID = uID;
+		this.canRead = canRead;
+		this.canWrite = canWrite;
+		this.canDelegate = canDelegate;
+		this.startEpoch = startEpoch;
+		this.endEpoch = startEpoch + duration;
+	}
 }

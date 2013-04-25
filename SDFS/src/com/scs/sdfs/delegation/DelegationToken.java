@@ -7,16 +7,16 @@ public class DelegationToken {
 	/**
 	 * The plaintext primitives
 	 */
-	DelegationPrimitive primitive;
+	public DelegationPrimitive primitive;
 	
 	/**
 	 * Signed encrypted form of the primitives
 	 */
-	byte[] primitiveSignature;
+	public byte[] primitiveSignature;
 	
 	/**
 	 * Chain of ordered delegation tokens going 
 	 * back to the owner of this UID
 	 */
-	ArrayList<DelegationToken> tokenChain;
+	public ArrayList<DelegationToken> tokenChain;
 }
