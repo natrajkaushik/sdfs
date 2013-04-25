@@ -13,7 +13,7 @@ import java.security.cert.CertificateException;
  */
 public class KeyStoreHelper {
 
-	public static final String KEY_DUMP_FOLDER = "./keydump";
+	
 	
 	/**
 	 * @param pathToKeyStore path to KeyStore file

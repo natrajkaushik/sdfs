@@ -21,6 +21,8 @@ public class SSLHelper {
 	public static final String TRUSTED_STORE_PASSWORD = "server";
 	public static final String TRUSTED_STORE_TYPE = "JKS";
 	
+	public static final String KEY_STORE_TYPE = "PKCS12";
+	
 	// KeyStore parameters
 	String keyStorePath, keyStoreType, keyStorePass;
 	
@@ -114,7 +116,7 @@ public class SSLHelper {
 	 * sets the SSLContext
 	 */
 	public void setSSLContext(){
-		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, keyStorePass, keyStoreType);
+		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, KEY_STORE_TYPE, keyStoreType);
 		TrustManager[] trustManagers = this.getTrustManagers(TRUSTED_STORE_PATH, TRUSTED_STORE_PASSWORD, TRUSTED_STORE_TYPE);
 		this.setSSLContext(keyManagers, trustManagers);
 	}
@@ -122,18 +124,16 @@ public class SSLHelper {
 	/**
 	 * 
 	 * @param keyStorePath
-	 * @param keyStoreType
 	 * @param keyStorePass
 	 * @return SSLHelper
 	 */
-	public static SSLHelper getSSLHelper(String keyStorePath, String keyStoreType, String keyStorePass){
-		return new SSLHelper(keyStorePath, keyStoreType, keyStorePass);
+	public static SSLHelper getSSLHelper(String keyStorePath, String keyStorePass){
+		return new SSLHelper(keyStorePath, keyStorePass);
 	}
 
-	private SSLHelper(String keyStorePath, String keyStoreType, String keyStorePass) {
+	private SSLHelper(String keyStorePath, String keyStorePass) {
 		super();
 		this.keyStorePath = keyStorePath;
-		this.keyStoreType = keyStoreType;
 		this.keyStorePass = keyStorePass;
 	}	
 
