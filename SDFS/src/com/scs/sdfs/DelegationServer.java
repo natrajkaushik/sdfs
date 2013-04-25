@@ -2,15 +2,18 @@ package com.scs.sdfs;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.Socket;
 import java.nio.charset.Charset;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 
-
+/**
+ * Handles incoming delegation messages
+ */
 public class DelegationServer extends Thread{
 
 	private SSLContext sslContext;
@@ -35,16 +38,33 @@ public class DelegationServer extends Thread{
 		
 		SSLSocket socket = null;
 		try {
-			System.out.println("Server has started");
+			System.out.println("Delegation Server has started");
 			while(true){
 				socket = (SSLSocket) serverSocket.accept();
-				new ClientListener(socket).start();
+				String peerPrincipal = socket.getSession().getPeerPrincipal().getName();
+				String peerCN = null;
+				if(peerPrincipal != null && !peerPrincipal.trim().isEmpty()){
+					peerCN = getCNFromPrincipal(peerPrincipal);
+				}
+				
+				new ClientListener(socket, peerCN).start();
 			}
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * @param principal of peer
+	 * @return CN
+	 */
+	private String getCNFromPrincipal(String principal){
+		Pattern pattern  = Pattern.compile("CN=([^\\,]*)");
+		Matcher matcher = pattern.matcher(principal);
+		String CN = matcher.find() ? matcher.group(1) : null;
+		return CN;
 	}
 	
 	/**
@@ -60,10 +80,12 @@ public class DelegationServer extends Thread{
 	class ClientListener extends Thread {
 		public static final int READ_BUFFER_SIZE = 4096;
 		SSLSocket socket;
+		String peerCN;
 
-		public ClientListener(SSLSocket socket) {
+		public ClientListener(SSLSocket socket, String peerCN) {
 			super();
 			this.socket = socket;
+			this.peerCN = peerCN;
 		}
 
 		/**
