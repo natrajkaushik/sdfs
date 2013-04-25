@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.UUID;
 
 import com.scs.sdfs.ErrorCode;
 import com.scs.sdfs.args.CmdGetFileArgument;
@@ -191,6 +192,12 @@ public class FileManager {
 	}
 	
 	private String generateNewDiskName() {
-		return null;
+		do {
+			String newName = UUID.randomUUID().toString();
+			if (!new File(FILE_FOLDER + File.separator + newName).exists()) {
+				return newName;
+			}
+		}
+		while (true);
 	}
 }

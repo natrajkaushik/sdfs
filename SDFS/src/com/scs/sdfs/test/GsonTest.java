@@ -22,10 +22,24 @@ public class GsonTest {
 		sub1.primitive = new DelegationPrimitive("MNO", "XYZ", "564385643876583476", false, true, false,
 				System.currentTimeMillis() - 30000, 60000);
 
+		DelegationToken sub2 = new DelegationToken();
+		sub2.primitiveSignature = "SUB2".getBytes();
+		sub2.primitive = new DelegationPrimitive("PQR", "KLM", "65834658535868", false, true, false,
+				System.currentTimeMillis() - 60000, 80000);
+
+		DelegationToken sub3 = new DelegationToken();
+		sub3.primitiveSignature = "SUB3".getBytes();
+		sub3.primitive = new DelegationPrimitive("GHI", "STU", "65834658535868", false, true, false,
+				System.currentTimeMillis() - 60000, 80000);
+
+		sub2.parentToken = sub3;
+		sub1.parentToken = sub2;
 		token.parentToken = sub1;
 		
 		Gson gson = new Gson();
+		System.out.println("**********************************");
 		System.out.println(gson.toJson(token));
+		System.out.println("**********************************");
 		
 		String json = gson.toJson(token);
 		DelegationToken newToken = gson.fromJson(json, DelegationToken.class);
