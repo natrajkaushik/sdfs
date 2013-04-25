@@ -2,32 +2,42 @@ package com.scs.sdfs;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.Charset;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 
 
 public class DelegationServer extends Thread{
 
+	private SSLContext sslContext;
+	
+	
+	public DelegationServer(SSLContext sslContext) {
+		super();
+		this.sslContext = sslContext;
+	}
+
 	@Override
 	public void run() {
-		SSLServerSocketFactory factory = (SSLServerSocketFactory) SSLServerSocketFactory
-				.getDefault();
-		ServerSocket serverSocket = null;
+		SSLServerSocketFactory factory = (SSLServerSocketFactory) sslContext.getServerSocketFactory();
+		SSLServerSocket serverSocket = null;
 		try {
-			serverSocket = factory.createServerSocket(Constants.SERVER_LISTENER_PORT);
+			serverSocket = (SSLServerSocket) factory.createServerSocket(Constants.SERVER_LISTENER_PORT);
+			serverSocket.setNeedClientAuth(true);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		Socket socket = null;
+		SSLSocket socket = null;
 		try {
 			System.out.println("Server has started");
 			while(true){
-				socket = serverSocket.accept();
+				socket = (SSLSocket) serverSocket.accept();
 				new ClientListener(socket).start();
 			}
 			
@@ -49,9 +59,9 @@ public class DelegationServer extends Thread{
 	 */
 	class ClientListener extends Thread {
 		public static final int READ_BUFFER_SIZE = 4096;
-		Socket socket;
+		SSLSocket socket;
 
-		public ClientListener(Socket socket) {
+		public ClientListener(SSLSocket socket) {
 			super();
 			this.socket = socket;
 		}

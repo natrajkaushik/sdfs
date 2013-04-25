@@ -95,10 +95,10 @@ public class SSLHelper {
 	 * @param keyManagers
 	 * @param trustManagers
 	 */
-	public void setSSLContext(KeyManager[] keyManagers, TrustManager[] trustManagers){
+	public SSLContext getSSLContext(KeyManager[] keyManagers, TrustManager[] trustManagers){
 		SSLContext sslContext = null;
 		try {
-			sslContext = SSLContext.getInstance("SSL");
+			sslContext = SSLContext.getInstance("TLS");
 		} catch (NoSuchAlgorithmException e2) {
 			// TODO Auto-generated catch block
 			e2.printStackTrace();
@@ -109,16 +109,16 @@ public class SSLHelper {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		SSLContext.setDefault(sslContext);
+		return sslContext;
 	}
 	
 	/*
 	 * sets the SSLContext
 	 */
-	public void setSSLContext(){
+	public SSLContext getSSLContext(){
 		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, KEY_STORE_TYPE, keyStoreType);
 		TrustManager[] trustManagers = this.getTrustManagers(TRUSTED_STORE_PATH, TRUSTED_STORE_PASSWORD, TRUSTED_STORE_TYPE);
-		this.setSSLContext(keyManagers, trustManagers);
+		return this.getSSLContext(keyManagers, trustManagers);
 	}
 	
 	/**

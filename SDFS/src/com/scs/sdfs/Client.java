@@ -1,5 +1,7 @@
 package com.scs.sdfs;
 
+import javax.net.ssl.SSLContext;
+
 /**
  * SDFS Client
  */
@@ -7,12 +9,14 @@ public class Client {
 
 	private String name; // name of the client
 	private String password;
+	
+	private SSLContext sslContext;
 
 	/**
 	 * creates the listener socket which waits for delegation messages from other clients
 	 */
 	public void createDelegationListener(){
-		new DelegationServer().start();
+		new DelegationServer(sslContext).start();
 	}
 
 	/**
@@ -28,7 +32,7 @@ public class Client {
 	 */
 	private void init(){
 		String keyStorePath = Constants.KEY_DUMP_FOLDER + "/" + name + ".p12";
-		SSLHelper.getSSLHelper(keyStorePath, password).setSSLContext(); // Initialize SSL Context
+		sslContext = SSLHelper.getSSLHelper(keyStorePath, password).getSSLContext(); // Initialize SSL Context
 	}
 	
 	

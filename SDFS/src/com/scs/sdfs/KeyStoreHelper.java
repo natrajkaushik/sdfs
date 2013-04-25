@@ -7,6 +7,9 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Enumeration;
+
+import javax.security.cert.Certificate;
 
 /**
  * Contains methods to access JAVA KeyStores and TrustedStores
@@ -42,11 +45,18 @@ public class KeyStoreHelper {
 		
 		try {
 			keyStore.load(keyStoreStream, keyStorePassword);
+			Enumeration<String> aliases = keyStore.aliases();
+			while(aliases.hasMoreElements()){
+				System.out.println(aliases.nextElement());
+			}
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (CertificateException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -58,7 +68,8 @@ public class KeyStoreHelper {
 		//addCertificate(NODE_A);
 		//displayProviders();
 		//getCACerts();
-		getKeyStore("./keydump/node_a.p12", "nodea", "PKCS12");
+		//getKeyStore("./keydump/node_a.p12", "nodea", "PKCS12");
+		getKeyStore("./stores/trusted.jks", "server", "JKS");
 	}
 
 }
