@@ -1,4 +1,4 @@
-package com.scs.sdfc.client;
+package com.scs.sdfs.client;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;

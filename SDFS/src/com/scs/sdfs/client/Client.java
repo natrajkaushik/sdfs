@@ -1,4 +1,4 @@
-package com.scs.sdfc.client;
+package com.scs.sdfs.client;
 
 import javax.net.ssl.SSLContext;
 
