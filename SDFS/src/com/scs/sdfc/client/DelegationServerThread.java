@@ -3,8 +3,6 @@ package com.scs.sdfc.client;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
@@ -12,16 +10,17 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
 
 import com.scs.sdfs.Constants;
+import com.scs.sdfs.SSLHelper;
 
 /**
  * Handles incoming delegation messages
  */
-public class DelegationServer extends Thread{
+public class DelegationServerThread extends Thread{
 
 	private SSLContext sslContext;
 	
 	
-	public DelegationServer(SSLContext sslContext) {
+	public DelegationServerThread(SSLContext sslContext) {
 		super();
 		this.sslContext = sslContext;
 	}
@@ -46,10 +45,10 @@ public class DelegationServer extends Thread{
 				String peerPrincipal = socket.getSession().getPeerPrincipal().getName();
 				String peerCN = null;
 				if(peerPrincipal != null && !peerPrincipal.trim().isEmpty()){
-					peerCN = getCNFromPrincipal(peerPrincipal);
+					peerCN = SSLHelper.getCNFromPrincipal(peerPrincipal);
 				}
 				
-				new ClientListener(socket, peerCN).start();
+				new DelegationConnection(socket, peerCN).start();
 			}
 			
 		} catch (IOException e) {
@@ -59,18 +58,7 @@ public class DelegationServer extends Thread{
 	}
 	
 	/**
-	 * @param principal of peer
-	 * @return CN
-	 */
-	private String getCNFromPrincipal(String principal){
-		Pattern pattern  = Pattern.compile("CN=([^\\,]*)");
-		Matcher matcher = pattern.matcher(principal);
-		String CN = matcher.find() ? matcher.group(1) : null;
-		return CN;
-	}
-	
-	/**
-	 * @param msg received from another client (delegation)
+	 * @param msg received from peer client (delegation)
 	 */
 	private void processIncomingMessage(String msg){
 		
@@ -79,12 +67,12 @@ public class DelegationServer extends Thread{
 	/**
 	 * Handles each connection 
 	 */
-	class ClientListener extends Thread {
+	class DelegationConnection extends Thread {
 		public static final int READ_BUFFER_SIZE = 4096;
 		SSLSocket socket;
 		String peerCN;
 
-		public ClientListener(SSLSocket socket, String peerCN) {
+		public DelegationConnection(SSLSocket socket, String peerCN) {
 			super();
 			this.socket = socket;
 			this.peerCN = peerCN;

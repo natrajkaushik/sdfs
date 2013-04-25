@@ -18,8 +18,8 @@ public class Client {
 	/**
 	 * creates the listener socket which waits for delegation messages from other clients
 	 */
-	public void createDelegationListener(){
-		new DelegationServer(sslContext).start();
+	public void createDelegationServer(){
+		new DelegationServerThread(sslContext).start();
 	}
 
 	/**
@@ -49,6 +49,6 @@ public class Client {
 
 
 	public static void main(String[] args) {
-
+		//Client c = new Client("Node A" , "nodea");
 	}
 }

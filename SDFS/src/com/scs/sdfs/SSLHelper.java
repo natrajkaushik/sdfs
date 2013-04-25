@@ -4,6 +4,8 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -135,6 +137,17 @@ public class SSLHelper {
 		super();
 		this.keyStorePath = keyStorePath;
 		this.keyStorePass = keyStorePass;
-	}	
+	}
+	
+	/**
+	 * @param principal of peer
+	 * @return CN
+	 */
+	public static String getCNFromPrincipal(String principal){
+		Pattern pattern  = Pattern.compile("CN=([^\\,]*)");
+		Matcher matcher = pattern.matcher(principal);
+		String CN = matcher.find() ? matcher.group(1) : null;
+		return CN;
+	}
 
 }
