@@ -9,6 +9,8 @@ import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import com.scs.sdfs.delegation.DelegationToken;
+
 public class FileManager {
 
 	private static final byte[] META_BOM = {8, 16, 32, 64};
@@ -21,12 +23,19 @@ public class FileManager {
 	private HashMap<String, MetaFile> files;
 	
 	private String keystorePassword;
-	
-	public FileManager(String password) {
-		this.keystorePassword = password;
+
+	private FileManager() {}
+
+	private static class SingletonHolder {
+		public static final FileManager INSTANCE = new FileManager();
 	}
 
-	public boolean init() {
+	public static FileManager getInstance() {
+		return SingletonHolder.INSTANCE;
+	}
+
+	public boolean init(String password) {
+		this.keystorePassword = password;
 		if (!Crypto.init(keystorePassword)) {
 			return false;
 		}
@@ -41,6 +50,12 @@ public class FileManager {
 	
 	public void wrapUp() {
 		saveMetadata();
+	}
+	
+	public synchronized byte[] commandGetFile(String client, String UID, DelegationToken token) {
+		
+		
+		return null;
 	}
 	
 	@SuppressWarnings("unchecked")
