@@ -1,11 +1,9 @@
 package com.scs.sdfs.test;
 
-import java.util.ArrayList;
-
 import com.google.gson.Gson;
 import com.scs.sdfs.ErrorCode;
-import com.scs.sdfs.args.CommandArgument;
 import com.scs.sdfs.args.CmdGetFileArgument;
+import com.scs.sdfs.args.CommandArgument;
 import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
@@ -24,8 +22,7 @@ public class GsonTest {
 		sub1.primitive = new DelegationPrimitive("MNO", "XYZ", "564385643876583476", false, true, false,
 				System.currentTimeMillis() - 30000, 60000);
 
-		token.tokenChain = new ArrayList<>();
-		token.tokenChain.add(sub1);
+		token.parentToken = sub1;
 		
 		Gson gson = new Gson();
 		System.out.println(gson.toJson(token));
@@ -33,7 +30,6 @@ public class GsonTest {
 		String json = gson.toJson(token);
 		DelegationToken newToken = gson.fromJson(json, DelegationToken.class);
 		
-		System.out.println(newToken.tokenChain.size());
 		System.out.println(new String(newToken.primitiveSignature));
 		
 		CommandArgument arg = new CmdGetFileArgument("1234", token);

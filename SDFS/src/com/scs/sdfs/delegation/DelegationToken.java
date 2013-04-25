@@ -1,6 +1,7 @@
 package com.scs.sdfs.delegation;
 
-import java.util.ArrayList;
+import java.security.cert.Certificate;
+
 
 public class DelegationToken {
 
@@ -15,8 +16,14 @@ public class DelegationToken {
 	public byte[] primitiveSignature;
 	
 	/**
-	 * Chain of ordered delegation tokens going 
-	 * back to the owner of this UID
+	 * Certificate of the source of this token
 	 */
-	public ArrayList<DelegationToken> tokenChain;
+	public Certificate sourceCert;
+	
+	/**
+	 * Parent of the current token, which authorized
+	 * the source to grant this token, or null if the
+	 * source is the owner
+	 */
+	public DelegationToken parentToken;
 }

@@ -11,8 +11,10 @@ import java.util.HashMap;
 
 import com.scs.sdfs.ErrorCode;
 import com.scs.sdfs.args.CmdGetFileArgument;
+import com.scs.sdfs.args.CmdPutFileArgument;
 import com.scs.sdfs.delegation.DelegationVerifier;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
+import com.scs.sdfs.rspns.CmdPutFileResponse;
 
 public class FileManager {
 
@@ -62,28 +64,72 @@ public class FileManager {
 	 * Executes the the GetFile command on the server if the request is valid.
 	 * @param client The client identifier extracted from the connection
 	 * @param arg Arguments to the GetFile command
-	 * @return Contents of the file if the request is valid and file exists, null otherwise
+	 * @return Contents of the file if the request is valid and file exists, error code otherwise
 	 */
 	public synchronized CmdGetFileResponse commandGetFile(String client, CmdGetFileArgument arg) {
 		CmdGetFileResponse response = new CmdGetFileResponse();
-		if (files.containsKey(arg.UID)) {
-			MetaFile meta = files.get(arg.UID);
-			if (meta.owner.equals(client) ||
-					DelegationVerifier.validateToken(client, arg.UID, arg.token, false)) {
-				File file = new File(FILE_FOLDER + File.separator + meta.diskName);
-				if (file.exists()) {
-					response.data = Crypto.loadFromDisk(file.getAbsolutePath(), meta.fileKey);
-					response.code = ErrorCode.OK;
+		if (arg == null) {
+			response.code = ErrorCode.INVALID_ARGUMENT;
+		}
+		else {
+			if (files.containsKey(arg.UID)) {
+				MetaFile meta = files.get(arg.UID);
+				if (meta.owner.equals(client) ||
+						DelegationVerifier.validateToken(client, arg.UID, arg.token, false)) {
+					File file = new File(FILE_FOLDER + File.separator + meta.diskName);
+					if (file.exists()) {
+						response.data = Crypto.loadFromDisk(file.getAbsolutePath(), meta.fileKey);
+						response.code = ErrorCode.OK;
+					} else {
+						response.code = ErrorCode.FILE_DELETED;
+					}
 				} else {
-					response.code = ErrorCode.FILE_DELETED;
+					response.code = ErrorCode.UNAUTHORIZED_ACCESS;
 				}
 			} else {
-				response.code = ErrorCode.UNAUTHORIZED_ACCESS;
+				response.code = ErrorCode.FILE_NOT_FOUND;
 			}
-		} else {
-			response.code = ErrorCode.FILE_NOT_FOUND;
 		}
-		
+		return response;
+	}
+	
+	/**
+	 * Executes the the PutFile command on the server if the request is valid.
+	 * @param client The client identifier extracted from the connection
+	 * @param arg Arguments to the PutFile command
+	 * @return An OK response if the command succeeds, error code otherwise
+	 */
+	public synchronized CmdPutFileResponse commandPutFile(String client, CmdPutFileArgument arg) {
+		CmdPutFileResponse response = new CmdPutFileResponse();
+		if (arg == null) {
+			response.code = ErrorCode.INVALID_ARGUMENT;
+		}
+		else {
+			if (files.containsKey(arg.UID)) {
+				MetaFile meta = files.get(arg.UID);
+				if (meta.owner.equals(client) ||
+						DelegationVerifier.validateToken(client, arg.UID, arg.token, true)) {
+					File file = new File(FILE_FOLDER + File.separator + meta.diskName);
+					if (Crypto.saveToDisk(file.getAbsolutePath(), arg.data, true)) {
+						response.code = ErrorCode.OK;
+					} else {
+						response.code = ErrorCode.FILE_NOT_SAVED;
+					}
+				} else {
+					response.code = ErrorCode.UNAUTHORIZED_ACCESS;
+				}
+			} else {
+				MetaFile newFile = new MetaFile(client, arg.UID, generateNewDiskName(), 
+												Crypto.getKeyFromData(arg.data));
+				File file = new File(FILE_FOLDER + File.separator + newFile.diskName);
+				if (Crypto.saveToDisk(file.getAbsolutePath(), arg.data, true)) {
+					response.code = ErrorCode.OK;
+					files.put(arg.UID, newFile);
+				} else {
+					response.code = ErrorCode.FILE_NOT_SAVED;
+				}
+			}
+		}
 		return response;
 	}
 	
@@ -142,5 +188,9 @@ public class FileManager {
 		} else {
 			System.err.println("Couldn't create data folder!");
 		}
+	}
+	
+	private String generateNewDiskName() {
+		return null;
 	}
 }

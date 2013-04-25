@@ -78,6 +78,13 @@ public class Crypto {
 	 * Loads and decrypts encrypted file contents using the server's private key
 	 */
 	public static byte[] loadFromDisk(String filename) {
+		return loadFromDisk(filename, getPrivateKey());
+	}
+	
+	/**
+	 * Loads and decrypts encrypted file contents using the provided private key
+	 */
+	public static byte[] loadFromDisk(String filename, Key key) {
 		try {
 			File inFile = new File(filename);
 			if (inFile.exists()) {
@@ -86,7 +93,7 @@ public class Crypto {
 				FileInputStream fis = new FileInputStream(inFile);
 				fis.read(encryptedData);
 				fis.close();
-				return decryptData(encryptedData, getPrivateKey());
+				return decryptData(encryptedData, key);
 			}
 			System.err.println("Encrypted file not found: " + filename);
 		} catch (IOException e) {
@@ -95,32 +102,6 @@ public class Crypto {
 		}
 		
 		return null;
-	}
-	
-	/**
-	 * Encrypts and saves data to file using the server's public key
-	 */
-	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite) {
-		File outFile = new File(filename);
-		if (!outFile.exists() || overwrite) {
-			try {
-				byte[] encryptedData = encryptData(data, getPublicKey());
-				if (encryptedData != null) {
-					FileOutputStream fos = new FileOutputStream(outFile, false);
-					fos.write(encryptedData);
-					fos.close();
-					return true;
-				}
-			} catch (IOException e) {
-				System.err.println("Error saving to file: " + filename);
-				e.printStackTrace();
-			} 
-		}
-		else {
-			System.err.println("Cannot overwrite file: " + filename);
-		}
-		
-		return false;
 	}
 	
 	/**
@@ -144,6 +125,39 @@ public class Crypto {
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * Encrypts and saves data to file using the server's public key
+	 */
+	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite) {
+		return saveToDisk(filename, data, overwrite, getPublicKey());
+	}
+	
+	/**
+	 * Encrypts and saves data to file using the provided public key
+	 */
+	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite, Key key) {
+		File outFile = new File(filename);
+		if (!outFile.exists() || overwrite) {
+			try {
+				byte[] encryptedData = encryptData(data, key);
+				if (encryptedData != null) {
+					FileOutputStream fos = new FileOutputStream(outFile, false);
+					fos.write(encryptedData);
+					fos.close();
+					return true;
+				}
+			} catch (IOException e) {
+				System.err.println("Error saving to file: " + filename);
+				e.printStackTrace();
+			} 
+		}
+		else {
+			System.err.println("Cannot overwrite file: " + filename);
+		}
+		
+		return false;
 	}
 	
 	/**
