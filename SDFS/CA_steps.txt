@@ -104,29 +104,31 @@ B] Create the Node key and signing with root CA's certificate
 		Write out database with 1 new entries
 		Data Base Updated
 
+
+5. Convert PEM format certificate file to DER format for compatibility with Java
+	openssl x509 -outform der -in node_a.crt -out node_a.der
+
+
+6. Package PEM format key file to PKCS#12 format for compability with Java
+	openssl pkcs12 -export -in node_a.crt -inkey node_a.key -out node_a.p12 -name node_a -CAfile root-ca.crt
+
+
 **********************************************************************************
 Java Keytool Commands
 
 1) Creating a new keystore
+	keytool -import -file ..\keydump\node_a.der -keystore node_a.jks -alias node_a
 
-keytool -import -file ..\keydump\node_a.der -keystore node_a.jks -alias node_a
-
-Output: creates a new keystore "node_a.jks" and adds the certificate "node_a.der" into it with the alias "node_a"
-
-Note: Password for keystore can be set in this step
+		Output: creates a new keystore "node_a.jks" and adds the certificate "node_a.der" into it with the alias "node_a"
+		Note: Password for keystore can be set in this step
 
 2) Listing certificates in keystore
+	keytool -list -v -keystore node_a.jks
 
-keytool -list -v -keystore node_a.jks
-
-Output: lists the certificates in the keystore "node_a.jks"
+		Output: lists the certificates in the keystore "node_a.jks"
 
 3) Deleting certificate from keystore 
-
-keytool -delete -alias node_a -keystore node_a.jks
+	keytool -delete -alias node_a -keystore node_a.jks
 
 4) Adding a PKCS entry into keystore. This entry contains both the private key and the certificate in a format that Java understands.
-
-keytool -importkeystore -destkeystore node_a.jks -srckeystore ..\keydump\node_a.p12 -srcstoretype PKCS12 -srcstorepass nodea
-
-
+	keytool -importkeystore -destkeystore node_a.jks -srckeystore ..\keydump\node_a.p12 -srcstoretype PKCS12 -srcstorepass nodea
