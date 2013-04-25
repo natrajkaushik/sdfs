@@ -1,6 +1,9 @@
-package com.scs.sdfs;
+package com.scs.sdfc.client;
 
 import javax.net.ssl.SSLContext;
+
+import com.scs.sdfs.Constants;
+import com.scs.sdfs.SSLHelper;
 
 /**
  * SDFS Client

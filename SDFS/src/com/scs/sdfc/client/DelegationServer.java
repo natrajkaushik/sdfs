@@ -1,4 +1,4 @@
-package com.scs.sdfs;
+package com.scs.sdfc.client;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -10,6 +10,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
+
+import com.scs.sdfs.Constants;
 
 /**
  * Handles incoming delegation messages
