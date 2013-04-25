@@ -3,6 +3,8 @@ package com.scs.sdfs.test;
 import java.util.ArrayList;
 
 import com.google.gson.Gson;
+import com.scs.sdfs.args.CommandArgument;
+import com.scs.sdfs.args.CmdGetFileArgument;
 import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
 
@@ -30,5 +32,8 @@ public class GsonTest {
 		
 		System.out.println(newToken.tokenChain.size());
 		System.out.println(new String(newToken.primitiveSignature));
+		
+		CommandArgument arg = new CmdGetFileArgument("1234", token);
+		System.out.println(arg.toString());
 	}
 }

@@ -9,6 +9,7 @@ import java.io.ObjectOutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import com.scs.sdfs.args.CmdGetFileArgument;
 import com.scs.sdfs.delegation.DelegationToken;
 
 public class FileManager {
@@ -52,7 +53,7 @@ public class FileManager {
 		saveMetadata();
 	}
 	
-	public synchronized byte[] commandGetFile(String client, String UID, DelegationToken token) {
+	public synchronized byte[] commandGetFile(String client, CmdGetFileArgument  arg) {
 		
 		
 		return null;
