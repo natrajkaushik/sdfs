@@ -1,4 +1,4 @@
-package com.scs.sdfs;
+package com.scs.sdfs.server;
 
 public class Server {
 
