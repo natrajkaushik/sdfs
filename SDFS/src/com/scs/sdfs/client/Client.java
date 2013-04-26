@@ -16,7 +16,7 @@ public class Client {
 	private int port; //port number on which client is listening for delegation requests
 	
 	private SSLContext sslContext;
-	private ClientFileManager clientFileManager;
+	private ClientManager clientManager;
 	
 	/**
 	 * creates the listener socket which waits for delegation messages from other clients
@@ -50,7 +50,7 @@ public class Client {
 		createDelegationServer();
 		createConsoleListener();
 		
-		clientFileManager = ClientFileManager.getClientFileManager(alias, password);
+		clientManager = ClientManager.getClientManager(alias, password);
 	}
 	
 	

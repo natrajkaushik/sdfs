@@ -1,36 +1,43 @@
 package com.scs.sdfs.client;
 
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.scs.sdfs.KeyStoreHelper;
 import com.scs.sdfs.client.ConsoleListener.Methods;
 import com.scs.sdfs.delegation.DelegationToken;
 
-public class ClientFileManager {
+public class ClientManager {
 
-	private static ClientFileManager clientFileManager = null;
+	private static ClientManager clientManager = null;
+	private String alias;
+	private String password;
+	
+	private Certificate certificate;
+	private PrivateKey privateKey;
 	
 	// contains mappings between file UIDs and access rights (null or DelegationTokens)
 	private Map<String, DelegationToken> FILE_ACCESS_RIGHTS_TABLE;
 	
-	public static ClientFileManager getClientFileManager(String alias, String password){
-		if(clientFileManager == null){
-			clientFileManager = new ClientFileManager(alias, password);
+	public static ClientManager getClientManager(String alias, String password){
+		if(clientManager == null){
+			clientManager = new ClientManager(alias, password);
 		}
-		return clientFileManager;
+		return clientManager;
 	}
 	
-	public static ClientFileManager getClientFileManager(){
-		return clientFileManager;
+	public static ClientManager getClientManager(){
+		return clientManager;
 	}
 	
-	private String alias;
-	private String password;
-	
-	private ClientFileManager(String alias, String password){
+	private ClientManager(String alias, String password){
 		this.alias = alias;
 		this.password = password;
 		FILE_ACCESS_RIGHTS_TABLE = new HashMap<String, DelegationToken>();
+		certificate = KeyStoreHelper.getCertificate(alias, password);
+		privateKey = KeyStoreHelper.getPrivateKey(alias, password);
 	}
 	
 	public String getAlias(){
@@ -41,6 +48,16 @@ public class ClientFileManager {
 		return password;
 	}
 	
+	
+	
+	public Certificate getCertificate() {
+		return certificate;
+	}
+
+	public PrivateKey getPrivateKey() {
+		return privateKey;
+	}
+
 	/**
 	 * @param uid makes client owner of file (uid)
 	 */

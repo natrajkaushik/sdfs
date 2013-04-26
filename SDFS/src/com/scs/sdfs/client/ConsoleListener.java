@@ -10,7 +10,6 @@ import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
-import com.scs.sdfs.KeyStoreHelper;
 import com.scs.sdfs.Utils;
 import com.scs.sdfs.args.CmdDelegateRightsArgument;
 import com.scs.sdfs.args.CmdGetFileArgument;
@@ -29,9 +28,9 @@ public class ConsoleListener extends Thread{
 	private SSLContext sslContext;
 	private ServerConnection serverConnection;
 	private ClientConnection clientConnection;
-	private ClientFileManager clientFileManager = ClientFileManager.getClientFileManager();
+	private ClientManager clientManager = ClientManager.getClientManager();
 	
-
+	public static final String CLIENT_DATA_DIR = "";
 	
 	public ConsoleListener(SSLContext sslContext) {
 		super();
@@ -114,11 +113,11 @@ public class ConsoleListener extends Thread{
 			String uid = tokens[1];
 			
 			CommandArgument get = null;
-			if(clientFileManager.isOwner(uid)){
+			if(clientManager.isOwner(uid)){
 				get = new CmdGetFileArgument(uid, null);
 			}
-			else if(clientFileManager.hasValidDelegationToken(uid, Methods.GET)){
-				DelegationToken token = clientFileManager.getDelegationToken(uid, Methods.GET);
+			else if(clientManager.hasValidDelegationToken(uid, Methods.GET)){
+				DelegationToken token = clientManager.getDelegationToken(uid, Methods.GET);
 				get = new CmdGetFileArgument(uid, token);
 			}else{
 				System.out.println("Client has no read access to file [" + "]" + uid);
@@ -129,6 +128,8 @@ public class ConsoleListener extends Thread{
 			serverConnection.sendCommand(get); 
 			CmdGetFileResponse response = (CmdGetFileResponse)serverConnection.readFromServer(Methods.GET);
 			//TODO write fileContents to file
+			
+			Utils.writeToFile(CLIENT_DATA_DIR + "/" + uid, response.data);
 		}
 	}
 	
@@ -140,14 +141,14 @@ public class ConsoleListener extends Thread{
 		if (tokens.length != 2) {
 			System.out.println("Usage: PUT <UID>");
 		} else {
-			byte[] fileContents = null; // TODO get this from file
 			String uid = tokens[1];
+			byte[] fileContents = Utils.readFromFile(CLIENT_DATA_DIR + "/" + uid);
 
 			CommandArgument put = null;
-			if (clientFileManager.isOwner(uid)) {
+			if (clientManager.isOwner(uid)) {
 				put = new CmdPutFileArgument(uid, fileContents, null);
-			} else if (clientFileManager.hasValidDelegationToken(uid, Methods.PUT)) {
-				DelegationToken token = clientFileManager.getDelegationToken(uid, Methods.PUT);
+			} else if (clientManager.hasValidDelegationToken(uid, Methods.PUT)) {
+				DelegationToken token = clientManager.getDelegationToken(uid, Methods.PUT);
 				put = new CmdGetFileArgument(uid, token);
 			} else {
 				System.out.println("Client has no write access to file [" + "]" + uid);
@@ -200,23 +201,29 @@ public class ConsoleListener extends Thread{
 			
 			clientConnection = new ClientConnection(sslContext, host, port);
 			
-			DelegationPrimitive primitive = new DelegationPrimitive(clientFileManager.getAlias(), target, 
+			DelegationPrimitive primitive = new DelegationPrimitive(clientManager.getAlias(), target, 
 					uid, rights.contains(Rights.READ), rights.contains(Rights.WRITE), 
 					rights.contains(Rights.DELEGATE), startEpoch, duration);
 			
-			Certificate certificate = KeyStoreHelper.getCertificate(clientFileManager.getAlias(), clientFileManager.getPassword());
-			PrivateKey privateKey = KeyStoreHelper.getPrivateKey(clientFileManager.getAlias(), clientFileManager.getPassword());
+			Certificate certificate = clientManager.getCertificate();
+			PrivateKey privateKey = clientManager.getPrivateKey();
 			
-			if(clientFileManager.isOwner(uid)){
-				DelegationToken token = new DelegationToken(primitive, certificate, null, privateKey);
-				CommandArgument delegate = new CmdDelegateRightsArgument(uid, token);
+			DelegationToken token;
+			CommandArgument delegate;
+			
+			if(clientManager.isOwner(uid)){
+				token = new DelegationToken(primitive, certificate, null, privateKey);
+				delegate = new CmdDelegateRightsArgument(uid, token);
 				clientConnection.sendCommand(delegate);
 			}
-			else if(clientFileManager.hasValidDelegationToken(uid, Methods.DELEGATE)){
-				
+			else if(clientManager.hasValidDelegationToken(uid, Methods.DELEGATE)){
+				DelegationToken parentToken = clientManager.getDelegationToken(uid, Methods.DELEGATE);
+				token = new DelegationToken(primitive, certificate, parentToken, privateKey);
+				delegate = new CmdDelegateRightsArgument(uid, token);
+				clientConnection.sendCommand(delegate);
 			}
 			else{
-				System.out.println("Client has no target access to file [" + "]" + uid);
+				System.out.println("Client has no delegate access to file [" + "]" + uid);
 			}
 			
 			clientConnection.close();
@@ -232,7 +239,18 @@ public class ConsoleListener extends Thread{
 			System.out.println("Usage: DELEGATE* <UID> <CLIENT> <DURATION> <[RIGHTS]>");
 		}else{
 			String uid = tokens[1];
-			String client = tokens[2];
+			String target = tokens[2];
+			
+			String[] clientAddress = target.split(":");
+			String host = clientAddress[0];
+			int port;
+			try{
+				port = Integer.parseInt(clientAddress[1]);
+			}catch(NumberFormatException e){
+				System.out.println("CLIENT must be of the form IP:PORT where PORT is a valid port number");
+				return;
+			}
+			
 			long duration;
 			try{
 				duration = Long.valueOf(tokens[3]) * 1000;
@@ -243,21 +261,45 @@ public class ConsoleListener extends Thread{
 			
 			long startEpoch = System.currentTimeMillis();
 			
+			
+			
 			Set<Rights> rights = new HashSet<Rights>();
 			for(int i = 4; i < tokens.length; i++){
 				rights.add(Rights.valueOf(tokens[i].toUpperCase()));
 				rights.add(Rights.DELEGATE); // DELEGATE* means DELEGATE rights are present
 			}
 			
-			if(clientFileManager.isOwner(uid)){
-				
+			
+			clientConnection = new ClientConnection(sslContext, host, port);
+
+			DelegationPrimitive primitive = new DelegationPrimitive(
+					clientManager.getAlias(), target, uid,
+					rights.contains(Rights.READ),
+					rights.contains(Rights.WRITE),
+					rights.contains(Rights.DELEGATE), startEpoch, duration);
+
+			Certificate certificate = clientManager.getCertificate();
+			PrivateKey privateKey = clientManager.getPrivateKey();
+
+			DelegationToken token;
+			CommandArgument delegate;
+			
+			if(clientManager.isOwner(uid)){
+				token = new DelegationToken(primitive, certificate, null, privateKey);
+				delegate = new CmdDelegateRightsArgument(uid, token);
+				clientConnection.sendCommand(delegate);
 			}
-			else if(clientFileManager.hasValidDelegationToken(uid, Methods._DELEGATE)){
-				
+			else if(clientManager.hasValidDelegationToken(uid, Methods._DELEGATE)){
+				DelegationToken parentToken = clientManager.getDelegationToken(uid, Methods.DELEGATE);
+				token = new DelegationToken(primitive, certificate, parentToken, privateKey);
+				delegate = new CmdDelegateRightsArgument(uid, token);
+				clientConnection.sendCommand(delegate);
 			}
 			else{
-				System.out.println("Client has no target access to file [" + "]" + uid);
+				System.out.println("Client has no delegate* access to file [" + "]" + uid);
 			}
+			
+			clientConnection.close();
 		}
 	}
 	
@@ -270,6 +312,7 @@ public class ConsoleListener extends Thread{
 			System.out.println("Usage: CLOSE");
 		}else{
 			System.out.println("Exiting .... ");
+			//clientManager.saveToDisk();
 			serverConnection.close();
 		}
 	}

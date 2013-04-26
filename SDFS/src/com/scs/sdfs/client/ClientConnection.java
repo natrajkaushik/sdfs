@@ -24,7 +24,7 @@ public class ClientConnection {
 	private String host;
 	private int port;
 	private SSLSocket socket;
-	private Gson gson = new Gson();
+	private static final Gson GSON = new Gson();
 	
 	public ClientConnection(SSLContext sslContext, String host, int port) {
 		this.sslContext = sslContext;
@@ -96,9 +96,9 @@ public class ClientConnection {
 		
 		switch(method){
 		case DELEGATE:
-			return gson.fromJson(data, CmdGetFileResponse.class);
+			return GSON.fromJson(data, CmdGetFileResponse.class);
 		case _DELEGATE:
-			return gson.fromJson(data, CmdPutFileResponse.class);
+			return GSON.fromJson(data, CmdPutFileResponse.class);
 		default:
 			return null;
 		}
