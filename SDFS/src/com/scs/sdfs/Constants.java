@@ -22,4 +22,10 @@ public class Constants {
 	public static final String SIGN_ALGO = "SHA256withRSA";
 	
 	public static final String SYM_KEY_FMT = "AES";
+
+	public static final String META_FILE = "data/meta.info";
+
+	public static final String FILE_FOLDER = "data/files";
+
+	public static final String DATA_FOLDER = "data";
 }

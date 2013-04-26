@@ -104,8 +104,8 @@ public abstract class Crypto {
 	
 	/**
 	 * Loads and decrypts encrypted file contents using the hash of the provided 
-	 * private key as a symmetric encryption key. The IV is read from the first
-	 * few bytes of the encrypted file.
+	 * key as a symmetric encryption key. The IV is read from the first few bytes
+	 * of the encrypted file.
 	 */
 	public static byte[] loadFromDisk(String filename, Key key) {
 		File inFile = new File(filename);
@@ -140,15 +140,15 @@ public abstract class Crypto {
 	}
 	
 	/**
-	 * Encrypts and saves data to file using the default public key
+	 * Encrypts and saves data to file using the default private key
 	 */
 	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite) {
 		return saveToDisk(filename, data, overwrite, getPrivateKey());
 	}
 	
 	/**
-	 * Encrypts and saves data to file using the hash of the provided public key
-	 * as a symmetric decryption key. The IV is prepended to the encrypted file contents.
+	 * Encrypts and saves data to file using the hash of the provided key as a 
+	 * symmetric decryption key. The IV is prepended to the encrypted file contents.
 	 */
 	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite, Key key) {
 		File outFile = new File(filename);

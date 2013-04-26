@@ -1,5 +1,7 @@
 package com.scs.sdfs.client;
 
+import java.io.File;
+
 import javax.net.ssl.SSLContext;
 
 import com.scs.sdfs.Constants;
@@ -16,7 +18,6 @@ public class Client {
 	private int port; //port number on which client is listening for delegation requests
 	
 	private SSLContext sslContext;
-	private ClientManager clientManager;
 	
 	/**
 	 * creates the listener socket which waits for delegation messages from other clients
@@ -32,13 +33,11 @@ public class Client {
 		new ConsoleListener(sslContext).start();
 	}
 	
-	
-	
 	/**
 	 * Initializes the Client
 	 */
 	private void init(){
-		String keyStorePath = Constants.KEY_DUMP_FOLDER + "/" + alias + ".p12";
+		String keyStorePath = Constants.KEY_DUMP_FOLDER + File.separator + alias + ".p12";
 		sslContext = SSLHelper.getSSLHelper(keyStorePath, password).getSSLContext(); // Initialize SSL Context
 		
 		boolean success = Crypto.init(password, null, alias, alias + ".p12");
@@ -50,9 +49,8 @@ public class Client {
 		createDelegationServer();
 		createConsoleListener();
 		
-		clientManager = ClientManager.getClientManager(alias, password);
+		ClientManager.getClientManager(alias, password);
 	}
-	
 	
 	public Client(String alias, int port, String password) {
 		super();
@@ -61,7 +59,6 @@ public class Client {
 		this.port = port;
 		init();
 	}
-
 
 	/**
 	 * @param args
@@ -76,7 +73,7 @@ public class Client {
 			String alias = args[0];
 			int port = Integer.parseInt(args[1]);
 			String password = args[2];
-			Client client = new Client(alias, port, password);
+			new Client(alias, port, password);
 		}
 	}
 }

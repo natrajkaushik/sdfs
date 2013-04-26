@@ -38,7 +38,7 @@ public class ClientConnection extends Thread{
 			e.printStackTrace();
 		}
 		
-		while(true){
+		while(!socket.isClosed()) {
 			String data = null;
 			try {
 				data = dis.readUTF();
@@ -51,6 +51,8 @@ public class ClientConnection extends Thread{
 			CommandResponse response = processArgument(argument);
 			sendResponse(response);
 		}
+		
+		System.out.println("Closing client connection thread...");
 	}
 	
 	private CommandResponse processArgument(CommandArgument argument){

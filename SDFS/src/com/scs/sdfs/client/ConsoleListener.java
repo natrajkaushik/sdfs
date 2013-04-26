@@ -1,6 +1,7 @@
 package com.scs.sdfs.client;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.PrivateKey;
@@ -10,6 +11,8 @@ import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
+import com.scs.sdfs.Constants;
+import com.scs.sdfs.ErrorCode;
 import com.scs.sdfs.Method;
 import com.scs.sdfs.Right;
 import com.scs.sdfs.Utils;
@@ -21,6 +24,7 @@ import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
 import com.scs.sdfs.rspns.CmdPutFileResponse;
+import com.scs.sdfs.server.Crypto;
 
 /**
  * Thread listens to console 
@@ -32,15 +36,12 @@ public class ConsoleListener extends Thread{
 	private ClientConnection clientConnection;
 	private ClientManager clientManager = ClientManager.getClientManager();
 	
-	public static final String CLIENT_DATA_DIR = "";
-	
 	public ConsoleListener(SSLContext sslContext) {
 		super();
 		this.sslContext = sslContext;
 	}
 
 	public void run() {
-		
 		System.out.println("Welcome to the SDFS Client Interface !");
 		
 		while(true){
@@ -96,10 +97,14 @@ public class ConsoleListener extends Thread{
 	 * handle START command
 	 * @param tokens
 	 */
-	private void handleStart(String[] tokens){
-		if(tokens.length != 2){
+	private void handleStart(String[] tokens) {
+		if (tokens.length != 2) {
 			System.out.println("Usage: START <SERVER_IP>");
-		}else{
+		}
+		else {
+			if (new File(Constants.META_FILE).exists()) {
+				clientManager.replaceFileMap(Crypto.loadFromDisk(Constants.META_FILE));
+			}
 			serverConnection = new ServerConnection(sslContext);
 		}
 	}
@@ -108,30 +113,26 @@ public class ConsoleListener extends Thread{
 	 * handle GET command
 	 * @param tokens
 	 */
-	private void handleGet(String[] tokens){
-		if(tokens.length != 2){
+	private void handleGet(String[] tokens) {
+		if(tokens.length != 2) {
 			System.out.println("Usage: GET <fileUID>");
-		}else{
+		}
+		else {
 			String uid = tokens[1];
-			
 			CommandArgument get = null;
-			if(clientManager.isOwner(uid)){
-				get = new CmdGetFileArgument(uid, null);
-			}
-			else if(clientManager.hasValidDelegationToken(uid, Method.GET)){
+			
+			if (clientManager.hasValidDelegationToken(uid, Method.GET)) {
 				DelegationToken token = clientManager.getDelegationToken(uid, Method.GET);
 				get = new CmdGetFileArgument(uid, token);
-			}else{
-				System.out.println("Client has no read access to file [" + "]" + uid);
-				return;
+			}
+			else {
+				get = new CmdGetFileArgument(uid, null);
 			}
 			
 			/* blocking calls to server */
 			serverConnection.sendCommand(get); 
 			CmdGetFileResponse response = (CmdGetFileResponse)serverConnection.readFromServer(Method.GET);
-			//TODO write fileContents to file
-			
-			Utils.writeToFile(CLIENT_DATA_DIR + "/" + uid, response.data);
+			Utils.writeToFile(Constants.DATA_FOLDER + File.separator + uid, response.data);
 		}
 	}
 	
@@ -142,27 +143,32 @@ public class ConsoleListener extends Thread{
 	private void handlePut(String[] tokens) {
 		if (tokens.length != 2) {
 			System.out.println("Usage: PUT <fileUID>");
-		} else {
+		}
+		else {
 			String uid = tokens[1];
-			byte[] fileContents = Utils.readFromFile(CLIENT_DATA_DIR + "/" + uid);
-
+			byte[] fileContents = Utils.readFromFile(Constants.DATA_FOLDER + File.separator + uid);
+			
+			boolean addFileEntry = false;
 			CommandArgument put = null;
-			if (clientManager.isOwner(uid)) {
-				put = new CmdPutFileArgument(uid, fileContents, null);
-			} else if (clientManager.hasValidDelegationToken(uid, Method.PUT)) {
+			
+			if (clientManager.hasValidDelegationToken(uid, Method.PUT)) {
 				DelegationToken token = clientManager.getDelegationToken(uid, Method.PUT);
 				put = new CmdGetFileArgument(uid, token);
-			} else {
-				System.out.println("Client has no write access to file [" + "]" + uid);
-				return;
+			}
+			else {
+				put = new CmdPutFileArgument(uid, fileContents, null);
+				addFileEntry = true;
 			}
 			
 			/* blocking calls to server */
-			serverConnection.sendCommand(put); 
+			serverConnection.sendCommand(put);
 			CmdPutFileResponse response = (CmdPutFileResponse)serverConnection.readFromServer(Method.PUT);
+			System.out.println("Received response from server: " + response.code);
+			
+			if (addFileEntry && response.code == ErrorCode.OK) {
+				clientManager.makeOwner(uid);
+			}
 		}
-		
-		
 	}
 	
 	/**
@@ -243,9 +249,10 @@ public class ConsoleListener extends Thread{
 	private void handleClose(String[] tokens){
 		if(tokens.length != 1){
 			System.out.println("Usage: CLOSE");
-		}else{
+		}
+		else{
 			System.out.println("Exiting .... ");
-			//clientManager.saveToDisk();
+			Crypto.saveToDisk(Constants.META_FILE, clientManager.getSerializedFileMap(), true);
 			serverConnection.close();
 		}
 	}

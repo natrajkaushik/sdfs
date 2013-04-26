@@ -1,15 +1,22 @@
 package com.scs.sdfs.client;
 
+import java.io.File;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.scs.sdfs.Constants;
 import com.scs.sdfs.KeyStoreHelper;
 import com.scs.sdfs.Method;
 import com.scs.sdfs.delegation.DelegationToken;
+import com.scs.sdfs.server.MetaFile;
 
 public class ClientManager {
+	
+	private static final Gson GSON = new Gson();
 
 	private static ClientManager clientManager = null;
 	private String alias;
@@ -21,7 +28,7 @@ public class ClientManager {
 	// contains mappings between file UIDs and access rights (null or DelegationTokens)
 	private Map<String, DelegationToken> FILE_ACCESS_RIGHTS_TABLE;
 	
-	public static ClientManager getClientManager(String alias, String password){
+	public static ClientManager getClientManager(String alias, String password) {
 		if(clientManager == null){
 			clientManager = new ClientManager(alias, password);
 		}
@@ -38,6 +45,9 @@ public class ClientManager {
 		FILE_ACCESS_RIGHTS_TABLE = new HashMap<String, DelegationToken>();
 		certificate = KeyStoreHelper.getCertificate(alias, password);
 		privateKey = KeyStoreHelper.getPrivateKey(alias, password);
+		if (!new File(Constants.FILE_FOLDER).exists()) {
+			new File(Constants.FILE_FOLDER).mkdirs();
+		}
 	}
 	
 	public String getAlias(){
@@ -47,8 +57,6 @@ public class ClientManager {
 	public String getPassword(){
 		return password;
 	}
-	
-	
 	
 	public Certificate getCertificate() {
 		return certificate;
@@ -61,7 +69,7 @@ public class ClientManager {
 	/**
 	 * @param uid makes client owner of file (uid)
 	 */
-	public synchronized void makeOwner(String uid){
+	public synchronized void makeOwner(String uid) {
 		FILE_ACCESS_RIGHTS_TABLE.put(uid, null);
 	}
 	
@@ -82,6 +90,10 @@ public class ClientManager {
 		else{
 			FILE_ACCESS_RIGHTS_TABLE.put(uid, token);
 		}
+	}
+	
+	public boolean isNewFile(String uid) {
+		return !FILE_ACCESS_RIGHTS_TABLE.containsKey(uid);
 	}
 	
 	/**
@@ -115,6 +127,8 @@ public class ClientManager {
 				case DELEGATE:
 				case _DELEGATE:
 					return token.primitive.canDelegate;
+				default:
+					System.err.println("Invalid command received on client!");
 				}
 				return true;
 			}
@@ -151,5 +165,15 @@ public class ClientManager {
 		long current = System.currentTimeMillis();
 		return current > token.primitive.endEpoch;
 	}
-
+	
+	public byte[] getSerializedFileMap() {
+		return GSON.toJson(FILE_ACCESS_RIGHTS_TABLE).getBytes();
+	}
+	
+	public void replaceFileMap(byte[] data) {
+		if (data != null && data.length > 0) {
+			FILE_ACCESS_RIGHTS_TABLE = GSON.fromJson(new String(data), 
+					new TypeToken<HashMap<String, MetaFile>>(){}.getType());
+		}
+	}
 }
