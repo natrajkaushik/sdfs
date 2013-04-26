@@ -101,6 +101,6 @@ public class KeyStoreHelper {
 		//displayProviders();
 		//getCACerts();
 		//getKeyStore("./keydump/node_a.p12", "nodea", "PKCS12");
-		getKeyStore("./stores/trusted.jks", "server", "JKS");
+		getKeyStore("./store/trusted.jks", "server", "JKS");
 	}
 }

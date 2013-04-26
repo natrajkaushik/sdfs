@@ -63,7 +63,7 @@ public class SSLClient {
 		}
 
 		try {
-			trustedFactory.init(KeyStoreHelper.getKeyStore("./stores/trusted.jks", "server", null));
+			trustedFactory.init(KeyStoreHelper.getKeyStore("./store/trusted.jks", "server", null));
 		} catch (KeyStoreException e3) {
 			// TODO Auto-generated catch block
 			e3.printStackTrace();
