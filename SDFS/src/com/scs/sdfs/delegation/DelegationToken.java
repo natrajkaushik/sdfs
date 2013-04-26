@@ -35,6 +35,12 @@ public class DelegationToken {
 		this.sourceCert = sourceCert;
 		this.parentToken = parentToken;
 	}
+
+	public DelegationToken() {
+		super();
+	}
+	
+	
 	
 	
 }

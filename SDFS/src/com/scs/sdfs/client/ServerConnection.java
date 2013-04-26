@@ -1,18 +1,25 @@
 package com.scs.sdfs.client;
 
+import java.io.DataOutputStream;
 import java.io.IOException;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
+import com.google.gson.Gson;
 import com.scs.sdfs.Constants;
 import com.scs.sdfs.args.CommandArgument;
+import com.scs.sdfs.client.ConsoleListener.Methods;
+import com.scs.sdfs.rspns.CmdGetFileResponse;
+import com.scs.sdfs.rspns.CmdPutFileResponse;
+import com.scs.sdfs.rspns.CommandResponse;
 
 public class ServerConnection {
 
 	private SSLContext sslContext;
 	private SSLSocket socket;
+	private Gson gson = new Gson();
 	
 	public ServerConnection(SSLContext sslContext) {
 		this.sslContext = sslContext;
@@ -20,7 +27,7 @@ public class ServerConnection {
 	}
 	
 	/**
-	 * creates the socket connection to the server and stores it in 'socket'
+	 * create the socket connection to the server
 	 */
 	private void init(){
 		SSLSocketFactory factory = (SSLSocketFactory) sslContext.getSocketFactory();
@@ -28,20 +35,44 @@ public class ServerConnection {
 			socket = (SSLSocket) factory.createSocket(Constants.LOCALHOST, Constants.SERVER_LISTENER_PORT);
 			socket.setNeedClientAuth(true);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Sends a CommandArgument object to the server
+	 * @param argument
+	 */
 	public void sendCommand(CommandArgument argument){
+		byte[] toSend = argument.toBytes();
+		DataOutputStream dos = null;
 		
+		try {
+			dos = new DataOutputStream(socket.getOutputStream());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			dos.write(toSend);
+			dos.flush();
+		} catch (IOException e) {
+			
+		}
+		
+		if(dos != null){
+			try {
+				dos.close();
+			} catch (IOException e) {
+			}
+		}
 	}
 	
 	/**
-	 * reads file contents from socket
-	 * @return byte[] contents of file
+	 * reads response from server
+	 * @return CommandResponse
 	 */
-	public byte[] readFromServer(){
+	public CommandResponse readFromServer(Methods method){
 		byte[] data = new byte[0];
 		byte[] buffer = new byte[4096];
 		int byteCount = -1;
@@ -58,7 +89,16 @@ public class ServerConnection {
 			e.printStackTrace();
 		}
 		
-		return data;
+		String _data = new String(data);
+		switch(method){
+		case GET:
+			return gson.fromJson(_data, CmdGetFileResponse.class);
+		case PUT:
+			return gson.fromJson(_data, CmdPutFileResponse.class);
+		default:
+			return null;
+		}
+		
 	}
 	
 	/**

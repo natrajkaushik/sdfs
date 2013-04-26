@@ -8,7 +8,11 @@ import javax.net.ssl.SSLContext;
 
 import com.scs.sdfs.Utils;
 import com.scs.sdfs.args.CmdGetFileArgument;
+import com.scs.sdfs.args.CmdPutFileArgument;
 import com.scs.sdfs.args.CommandArgument;
+import com.scs.sdfs.delegation.DelegationToken;
+import com.scs.sdfs.rspns.CmdGetFileResponse;
+import com.scs.sdfs.rspns.CmdPutFileResponse;
 
 /**
  * Thread listens to console 
@@ -17,12 +21,14 @@ public class ConsoleListener extends Thread{
 
 	private SSLContext sslContext;
 	private ServerConnection serverConnection;
+	private ClientFileManager clientFileManager = ClientFileManager.getClientFileManager();
 	
 	enum Methods{
 		START ("START"),
 		GET ("GET"),
 		PUT ("PUT"),
 		DELEGATE ("DELEGATE"),
+		_DELEGATE("DELEGATE*"),
 		CLOSE ("CLOSE");
 		
 		private String method;
@@ -83,6 +89,9 @@ public class ConsoleListener extends Thread{
 		case DELEGATE:
 			handleDelegate(tokens);
 			break;
+		case _DELEGATE:
+			handleDelegateStar(tokens);
+			break;
 		case CLOSE:
 			handleClose(tokens);
 			break;
@@ -110,9 +119,23 @@ public class ConsoleListener extends Thread{
 			System.out.println("Usage: GET <UID>");
 		}else{
 			String uid = tokens[1];
-			CommandArgument get = new CmdGetFileArgument(uid, null);
-			serverConnection.sendCommand(get);
-			byte[] fileContents = serverConnection.readFromServer();
+			
+			CommandArgument get = null;
+			if(clientFileManager.isOwner(uid)){
+				get = new CmdGetFileArgument(uid, null);
+			}
+			else if(clientFileManager.hasValidDelegationToken(uid, Methods.GET)){
+				DelegationToken token = clientFileManager.getDelegationToken(uid, Methods.GET);
+				get = new CmdGetFileArgument(uid, token);
+			}else{
+				System.out.println("Client has no read access to file [" + "]" + uid);
+				return;
+			}
+			
+			/* blocking calls to server */
+			serverConnection.sendCommand(get); 
+			CmdGetFileResponse response = (CmdGetFileResponse)serverConnection.readFromServer(Methods.GET);
+			//TODO write fileContents to file
 		}
 	}
 	
@@ -120,12 +143,30 @@ public class ConsoleListener extends Thread{
 	 * handle PUT command
 	 * @param tokens
 	 */
-	private void handlePut(String[] tokens){
-		if(tokens.length != 2){
+	private void handlePut(String[] tokens) {
+		if (tokens.length != 2) {
 			System.out.println("Usage: PUT <UID>");
-		}else{
+		} else {
+			byte[] fileContents = null; // TODO get this from file
+			String uid = tokens[1];
+
+			CommandArgument put = null;
+			if (clientFileManager.isOwner(uid)) {
+				put = new CmdPutFileArgument(uid, fileContents, null);
+			} else if (clientFileManager.hasValidDelegationToken(uid, Methods.PUT)) {
+				DelegationToken token = clientFileManager.getDelegationToken(uid, Methods.PUT);
+				put = new CmdGetFileArgument(uid, token);
+			} else {
+				System.out.println("Client has no write access to file [" + "]" + uid);
+				return;
+			}
 			
+			/* blocking calls to server */
+			serverConnection.sendCommand(put); 
+			CmdPutFileResponse response = (CmdPutFileResponse)serverConnection.readFromServer(Methods.PUT);
 		}
+		
+		
 	}
 	
 	/**
@@ -136,7 +177,61 @@ public class ConsoleListener extends Thread{
 		if(tokens.length != 4){
 			System.out.println("Usage: DELEGATE <UID> <CLIENT_IP> <DURATION>");
 		}else{
+			String uid = tokens[1];
+			String client = tokens[2];
+			long duration;
+			try{
+				duration = Long.valueOf(tokens[3]);
+			}catch(NumberFormatException e){
+				System.out.println("DURATION has to be a number");
+				return;
+			}
 			
+			long startEpoch = System.currentTimeMillis();
+			long endEpoch = startEpoch + (duration * 1000);
+			
+			if(clientFileManager.isOwner(uid)){
+				
+			}
+			else if(clientFileManager.hasValidDelegationToken(uid, Methods.DELEGATE)){
+				
+			}
+			else{
+				System.out.println("Client has no delegate access to file [" + "]" + uid);
+			}
+		}
+	}
+	
+	/**
+	 * handle DELEGATE* command
+	 * @param tokens
+	 */
+	private void handleDelegateStar(String[] tokens){
+		if(tokens.length != 4){
+			System.out.println("Usage: DELEGATE* <UID> <CLIENT_IP> <DURATION>");
+		}else{
+			String uid = tokens[1];
+			String client = tokens[2];
+			long duration;
+			try{
+				duration = Long.valueOf(tokens[3]);
+			}catch(NumberFormatException e){
+				System.out.println("DURATION has to be a number");
+				return;
+			}
+			
+			long startEpoch = System.currentTimeMillis();
+			long endEpoch = startEpoch + (duration * 1000);
+			
+			if(clientFileManager.isOwner(uid)){
+				
+			}
+			else if(clientFileManager.hasValidDelegationToken(uid, Methods._DELEGATE)){
+				
+			}
+			else{
+				System.out.println("Client has no delegate access to file [" + "]" + uid);
+			}
 		}
 	}
 	
