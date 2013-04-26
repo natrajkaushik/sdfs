@@ -8,8 +8,9 @@ public class CmdPutFileArgument extends CommandArgument {
 	public byte[] data;
 	public DelegationToken token;
 	
-	public CmdPutFileArgument(String uid, DelegationToken token) {
+	public CmdPutFileArgument(String uid, byte[] data, DelegationToken token) {
 		this.UID = uid;
+		this.data = data;
 		this.token = token;
 	}
 }

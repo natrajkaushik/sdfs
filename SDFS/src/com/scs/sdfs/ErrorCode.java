@@ -25,4 +25,8 @@ public enum ErrorCode {
 		this.code = code;
 		this.msg = msg;
 	}
+	
+	public String toString() {
+		return msg;
+	}
 }

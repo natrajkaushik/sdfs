@@ -12,9 +12,14 @@ import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
+import java.util.HashMap;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import com.scs.sdfs.Constants;
+import com.scs.sdfs.delegation.DelegationVerifier;
 
 public class Crypto {
 
@@ -23,14 +28,22 @@ public class Crypto {
 	
 	private static final String ASYM_ENC_ALGO = "RSA";
 	private static final String SYM_ENC_ALGO = "AES/CBC/PKCS5Padding";
-	private static final String HASH_ALGO = "SHA-512";
+	private static final String HASH_ALGO = "SHA-256";
 	
-	private static final String CERT_FOLDER = "cert";
+	public static final int IV_LEN = 16;
 	
 	private static String p12File = "";
 	private static String selfAlias = "";
 	private static String keystorePassword = "";
+	
 	private static Certificate rootCert = null;
+	
+	/**
+	 * Hashmap mapping the absolute file path to an object
+	 * on which read and write methods can synchronize to get
+	 * access to the file.
+	 */
+	private static HashMap<String, Object> lockMap;
 	
 	private static KeyStore keystore;
 
@@ -58,6 +71,10 @@ public class Crypto {
 		System.out.println(new String(decrypted));
 	}
 	
+	/**
+	 * Initializes the keystore and the necessary objects.
+	 * Also initializes the DelegationVerifier.
+	 */
 	public static boolean init(String password, Certificate rootCertificate, String alias, String keyFile) {
 		keystorePassword = password;
 		rootCert = rootCertificate;
@@ -65,9 +82,13 @@ public class Crypto {
 		p12File = keyFile;
 		
 		try {
-			File keystoreFile = new File(CERT_FOLDER + File.separator + p12File);
+			File keystoreFile = new File(Constants.KEY_DUMP_FOLDER + File.separator + p12File);
 			keystore = KeyStore.getInstance(KEYSTORE_FMT);
 			keystore.load(new FileInputStream(keystoreFile), password.toCharArray());
+			lockMap = new HashMap<String, Object>();
+			if (rootCert != null) {				// no need for delegation verifier on the client
+				DelegationVerifier.init(rootCert);
+			}
 			return true;
 		} catch (GeneralSecurityException e) {
 			System.err.println("Security error while loading keystore!");
@@ -81,7 +102,7 @@ public class Crypto {
 	}
 	
 	/**
-	 * Loads and decrypts encrypted file contents using the server's private key
+	 * Loads and decrypts encrypted file contents using the default private key
 	 */
 	public static byte[] loadFromDisk(String filename) {
 		return loadFromDisk(filename, getPrivateKey());
@@ -103,18 +124,18 @@ public class Crypto {
 	/**
 	 * Loads and decrypts encrypted file contents using decryption of the provided secret key
 	 */
-	public static byte[] loadFromDisk(String filename, byte[] key) {
+	public static byte[] loadFromDisk(String filename, byte[] key, byte[] iv) {
 		File inFile = new File(filename);
 		if (inFile.exists()) {
 			byte[] encryptedData = readFromDisk(inFile);
-			return decryptData(encryptedData, getDecryptedKey(key));
+			return decryptData(encryptedData, getDecryptedKey(key), iv);
 		}
 		System.err.println("Encrypted file not found: " + filename);
 		return null;
 	}
 	
 	/**
-	 * Encrypts and saves data to file using the server's public key
+	 * Encrypts and saves data to file using the default public key
 	 */
 	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite) {
 		return saveToDisk(filename, data, overwrite, getPublicKey());
@@ -135,21 +156,30 @@ public class Crypto {
 	}
 	
 	/**
-	 * Encrypts and saves data to file using decryption of the provided secret key
+	 * Encrypts and saves data to file using decryption of the provided secret key.
+	 * Returns the IV used for encryption <b><i>only if</i></b> the encryption as well as
+	 * saving to disk was successful.
 	 */
-	public static boolean saveToDisk(String filename, byte[] data, byte[] key, boolean overwrite) {
+	public static byte[] saveToDisk(String filename, byte[] data, byte[] key, boolean overwrite) {
 		File outFile = new File(filename);
 		if (!outFile.exists() || overwrite) {
-			byte[] encryptedData = encryptData(data, getDecryptedKey(key));
-			return writeToDisk(encryptedData, outFile);
+			byte[] iv = new byte[IV_LEN];
+			byte[] encryptedData = encryptData(data, getDecryptedKey(key), iv);
+			if (writeToDisk(encryptedData, outFile)) {
+				return iv;
+			}
 		}
 		else {
 			System.err.println("Cannot overwrite file: " + filename);
 		}
-		
-		return false;
+		return null;
 	}
 	
+	/**
+	 * Hashes file data to generate an AES-256 key for 
+	 * encrypting the file contents with. The key is returned
+	 * encrypted with the private key of the current node.
+	 */
 	public static byte[] getKeyFromData(byte[] data) {
 		try {
 			MessageDigest digest = MessageDigest.getInstance(HASH_ALGO);
@@ -159,7 +189,6 @@ public class Crypto {
 			System.err.println("Error hashing data!");
 			e.printStackTrace();
 		}
-		
 		return null;
 	}
 
@@ -227,7 +256,8 @@ public class Crypto {
 		try {
 			Cipher cipher = Cipher.getInstance(ASYM_ENC_ALGO);
 			cipher.init(Cipher.DECRYPT_MODE, key);
-			return cipher.doFinal(data);
+			cipher.update(data);
+			return cipher.doFinal();
 		}
 		catch (GeneralSecurityException e) {
 			System.err.println("Error decrypting data!");
@@ -240,7 +270,7 @@ public class Crypto {
 	/**
 	 * Does symmetric encryption of data with the provided key
 	 */
-	private static byte[] encryptData(byte[] data, byte[] key) {
+	private static byte[] encryptData(byte[] data, byte[] key, byte[] iv) {
 		if (data == null || key == null || key.length == 0) {
 			return null;
 		}
@@ -248,6 +278,7 @@ public class Crypto {
 			Cipher cipher = Cipher.getInstance(SYM_ENC_ALGO);
 			SecretKeySpec secret = new SecretKeySpec(key, SYM_KEY_FMT);
 			cipher.init(Cipher.ENCRYPT_MODE, secret);
+			System.arraycopy(cipher.getIV(), 0, iv, 0, IV_LEN);
 			return cipher.doFinal(data);
 		}
 		catch (GeneralSecurityException e) {
@@ -260,14 +291,15 @@ public class Crypto {
 	/**
 	 * Does symmetric decryption of data with the provided key
 	 */
-	private static byte[] decryptData(byte[] data, byte[] key) {
+	private static byte[] decryptData(byte[] data, byte[] key, byte[] iv) {
 		if (data == null || key == null || key.length == 0) {
 			return null;
 		}
 		try {
 			Cipher cipher = Cipher.getInstance(SYM_ENC_ALGO);
+			IvParameterSpec ivSpec = new IvParameterSpec(iv);
 			SecretKeySpec secret = new SecretKeySpec(key, SYM_KEY_FMT);
-			cipher.init(Cipher.DECRYPT_MODE, secret);
+			cipher.init(Cipher.DECRYPT_MODE, secret, ivSpec);
 			return cipher.doFinal(data);
 		}
 		catch (GeneralSecurityException e) {
@@ -281,15 +313,22 @@ public class Crypto {
 	 * Reads data from file
 	 */
 	private static byte[] readFromDisk(File inFile) {
-		// TODO synchronize access for each file
-		try {
-			byte[] data = new byte[(int) inFile.length()];
-			FileInputStream fis = new FileInputStream(inFile);
-			fis.read(data);
-			fis.close();
+		Object lockObj = lockMap.get(inFile.getAbsolutePath());
+		if (lockObj == null) {
+			lockObj = new Object();
+			lockMap.put(inFile.getAbsolutePath(), lockObj);
 		}
-		catch (IOException e) {
-			System.err.println("Error reading file: " + inFile.getName());
+		synchronized (lockObj) {
+			try {
+				byte[] data = new byte[(int) inFile.length()];
+				FileInputStream fis = new FileInputStream(inFile);
+				fis.read(data);
+				fis.close();
+				return data;
+			}
+			catch (IOException e) {
+				System.err.println("Error reading file: " + inFile.getName());
+			}
 		}
 		return null;
 	}
@@ -298,17 +337,23 @@ public class Crypto {
 	 * Writes data out to file
 	 */
 	private static boolean writeToDisk(byte[] data, File outFile) {
-		// TODO synchronize access for each file
-		try {
-			if (data != null) {
-				FileOutputStream fos = new FileOutputStream(outFile, false);
-				fos.write(data);
-				fos.close();
-				return true;
+		Object lockObj = lockMap.get(outFile.getAbsolutePath());
+		if (lockObj == null) {
+			lockObj = new Object();
+			lockMap.put(outFile.getAbsolutePath(), lockObj);
+		}
+		synchronized (lockObj) {
+			try {
+				if (data != null) {
+					FileOutputStream fos = new FileOutputStream(outFile, false);
+					fos.write(data);
+					fos.close();
+					return true;
+				}
+			} catch (IOException e) {
+				System.err.println("Error saving to file: " + outFile.getName());
+				e.printStackTrace();
 			}
-		} catch (IOException e) {
-			System.err.println("Error saving to file: " + outFile.getName());
-			e.printStackTrace();
 		}
 		return false;
 	}
