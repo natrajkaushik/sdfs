@@ -13,9 +13,9 @@ public class ClientFileManager {
 	// contains mappings between file UIDs and access rights (null or DelegationTokens)
 	private Map<String, DelegationToken> FILE_ACCESS_RIGHTS_TABLE;
 	
-	public static ClientFileManager getClientFileManager(String alias){
+	public static ClientFileManager getClientFileManager(String alias, String password){
 		if(clientFileManager == null){
-			clientFileManager = new ClientFileManager(alias);
+			clientFileManager = new ClientFileManager(alias, password);
 		}
 		return clientFileManager;
 	}
@@ -25,10 +25,20 @@ public class ClientFileManager {
 	}
 	
 	private String alias;
+	private String password;
 	
-	private ClientFileManager(String alias){
+	private ClientFileManager(String alias, String password){
 		this.alias = alias;
+		this.password = password;
 		FILE_ACCESS_RIGHTS_TABLE = new HashMap<String, DelegationToken>();
+	}
+	
+	public String getAlias(){
+		return alias;
+	}
+	
+	public String getPassword(){
+		return password;
 	}
 	
 	/**
@@ -76,6 +86,9 @@ public class ClientFileManager {
 				FILE_ACCESS_RIGHTS_TABLE.remove(uid);
 				return false;
 			}
+			else if(hasTokenNotArrived(token)){
+				return false;
+			}
 			else{
 				switch(method){
 				case GET:
@@ -92,6 +105,11 @@ public class ClientFileManager {
 		return false;
 	}
 	
+	private boolean hasTokenNotArrived(DelegationToken token) {
+		long current = System.currentTimeMillis();
+		return current < token.primitive.startEpoch;
+	}
+
 	/**
 	 * 
 	 * @param uid
@@ -114,7 +132,7 @@ public class ClientFileManager {
 	 */
 	private boolean hasTokenExpired(DelegationToken token){
 		long current = System.currentTimeMillis();
-		return (current > token.primitive.startEpoch && current < token.primitive.endEpoch); 
+		return current > token.primitive.endEpoch;
 	}
 
 }

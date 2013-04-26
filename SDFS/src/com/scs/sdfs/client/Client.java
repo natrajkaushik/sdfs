@@ -50,7 +50,7 @@ public class Client {
 		createDelegationServer();
 		createConsoleListener();
 		
-		clientFileManager = ClientFileManager.getClientFileManager(alias);
+		clientFileManager = ClientFileManager.getClientFileManager(alias, password);
 	}
 	
 	

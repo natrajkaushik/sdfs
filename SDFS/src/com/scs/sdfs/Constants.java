@@ -5,6 +5,8 @@ public class Constants {
 	
 	public static final int SERVER_LISTENER_PORT = 1443;
 	
+	public static final String KEY_STORE_TYPE = "PKCS12";
+	
 	public static final String TRUSTED_STORE_PATH = "./store/trusted.jks";
 	public static final String TRUSTED_STORE_PASSWORD = "server";
 	public static final String TRUSTED_STORE_TYPE = "JKS";

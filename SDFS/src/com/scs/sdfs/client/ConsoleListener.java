@@ -3,13 +3,20 @@ package com.scs.sdfs.client;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
+import com.scs.sdfs.KeyStoreHelper;
 import com.scs.sdfs.Utils;
+import com.scs.sdfs.args.CmdDelegateRightsArgument;
 import com.scs.sdfs.args.CmdGetFileArgument;
 import com.scs.sdfs.args.CmdPutFileArgument;
 import com.scs.sdfs.args.CommandArgument;
+import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
 import com.scs.sdfs.rspns.CmdPutFileResponse;
@@ -21,24 +28,10 @@ public class ConsoleListener extends Thread{
 
 	private SSLContext sslContext;
 	private ServerConnection serverConnection;
+	private ClientConnection clientConnection;
 	private ClientFileManager clientFileManager = ClientFileManager.getClientFileManager();
 	
-	enum Methods{
-		START ("START"),
-		GET ("GET"),
-		PUT ("PUT"),
-		DELEGATE ("DELEGATE"),
-		_DELEGATE("DELEGATE*"),
-		CLOSE ("CLOSE");
-		
-		private String method;
-		
-		Methods(String method){
-			this.method = method;
-		}
-		
-		
-	}
+
 	
 	public ConsoleListener(SSLContext sslContext) {
 		super();
@@ -174,11 +167,22 @@ public class ConsoleListener extends Thread{
 	 * @param tokens
 	 */
 	private void handleDelegate(String[] tokens){
-		if(tokens.length != 4){
-			System.out.println("Usage: DELEGATE <UID> <CLIENT_IP> <DURATION>");
+		if(tokens.length < 5){
+			System.out.println("Usage: DELEGATE <UID> <CLIENT> <DURATION> <[RIGHTS]>");
 		}else{
 			String uid = tokens[1];
-			String client = tokens[2];
+			String target = tokens[2];
+			
+			String[] clientAddress = target.split(":");
+			String host = clientAddress[0];
+			int port;
+			try{
+				port = Integer.parseInt(clientAddress[1]);
+			}catch(NumberFormatException e){
+				System.out.println("CLIENT must be of the form IP:PORT where PORT is a valid port number");
+				return;
+			}
+			
 			long duration;
 			try{
 				duration = Long.valueOf(tokens[3]);
@@ -187,11 +191,27 @@ public class ConsoleListener extends Thread{
 				return;
 			}
 			
+			Set<Rights> rights = new HashSet<Rights>();
+			for(int i = 4; i < tokens.length; i++){
+				rights.add(Rights.valueOf(tokens[i].toUpperCase()));
+			}
+			
 			long startEpoch = System.currentTimeMillis();
-			long endEpoch = startEpoch + (duration * 1000);
+			//long endEpoch = startEpoch + (duration * 1000);
+			
+			clientConnection = new ClientConnection(sslContext, host, port);
+			
+			DelegationPrimitive primitive = new DelegationPrimitive(clientFileManager.getAlias(), target, 
+					uid, rights.contains(Rights.READ), rights.contains(Rights.WRITE), 
+					rights.contains(Rights.DELEGATE), startEpoch, duration);
+			
+			Certificate certificate = KeyStoreHelper.getCertificate(clientFileManager.getAlias(), clientFileManager.getPassword());
+			PrivateKey privateKey = KeyStoreHelper.getPrivateKey(clientFileManager.getAlias(), clientFileManager.getPassword());
 			
 			if(clientFileManager.isOwner(uid)){
-				
+				DelegationToken token = new DelegationToken(primitive, certificate, null, privateKey);
+				CommandArgument delegate = new CmdDelegateRightsArgument(uid, token);
+				clientConnection.sendCommand(delegate);
 			}
 			else if(clientFileManager.hasValidDelegationToken(uid, Methods.DELEGATE)){
 				
@@ -199,6 +219,8 @@ public class ConsoleListener extends Thread{
 			else{
 				System.out.println("Client has no delegate access to file [" + "]" + uid);
 			}
+			
+			clientConnection.close();
 		}
 	}
 	
@@ -208,7 +230,7 @@ public class ConsoleListener extends Thread{
 	 */
 	private void handleDelegateStar(String[] tokens){
 		if(tokens.length != 4){
-			System.out.println("Usage: DELEGATE* <UID> <CLIENT_IP> <DURATION>");
+			System.out.println("Usage: DELEGATE* <UID> <CLIENT> <DURATION> <[RIGHTS]>");
 		}else{
 			String uid = tokens[1];
 			String client = tokens[2];
@@ -221,7 +243,13 @@ public class ConsoleListener extends Thread{
 			}
 			
 			long startEpoch = System.currentTimeMillis();
-			long endEpoch = startEpoch + (duration * 1000);
+			//long endEpoch = startEpoch + (duration * 1000);
+			
+			Set<Rights> rights = new HashSet<Rights>();
+			for(int i = 4; i < tokens.length; i++){
+				rights.add(Rights.valueOf(tokens[i].toUpperCase()));
+				rights.add(Rights.DELEGATE); // DELEGATE* means DELEGATE rights are present
+			}
 			
 			if(clientFileManager.isOwner(uid)){
 				
@@ -245,6 +273,33 @@ public class ConsoleListener extends Thread{
 		}else{
 			System.out.println("Exiting .... ");
 			serverConnection.close();
+		}
+	}
+	
+	enum Methods{
+		START ("START"),
+		GET ("GET"),
+		PUT ("PUT"),
+		DELEGATE ("DELEGATE"),
+		_DELEGATE("DELEGATE*"),
+		CLOSE ("CLOSE");
+		
+		private String method;
+		
+		Methods(String method){
+			this.method = method;
+		}	
+	}
+	
+	enum Rights{
+		READ ("READ"),
+		WRITE ("WRITE"),
+		DELEGATE ("DELEGATE");
+		
+		private String right;
+		
+		Rights(String right){
+			this.right = right;
 		}
 	}
 	
