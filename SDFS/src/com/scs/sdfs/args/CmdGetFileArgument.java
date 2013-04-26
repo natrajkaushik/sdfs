@@ -1,5 +1,6 @@
 package com.scs.sdfs.args;
 
+import com.scs.sdfs.Method;
 import com.scs.sdfs.delegation.DelegationToken;
 
 public class CmdGetFileArgument extends CommandArgument {
@@ -10,5 +11,6 @@ public class CmdGetFileArgument extends CommandArgument {
 	public CmdGetFileArgument(String uid, DelegationToken token) {
 		this.UID = uid;
 		this.token = token;
+		this.command = Method.GET;
 	}
 }

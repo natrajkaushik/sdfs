@@ -1,6 +1,7 @@
 package com.scs.sdfs.client;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.PrivateKey;
@@ -10,6 +11,10 @@ import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 
+import com.scs.sdfs.Constants;
+import com.scs.sdfs.ErrorCode;
+import com.scs.sdfs.Method;
+import com.scs.sdfs.Right;
 import com.scs.sdfs.Utils;
 import com.scs.sdfs.args.CmdDelegateRightsArgument;
 import com.scs.sdfs.args.CmdGetFileArgument;
@@ -19,6 +24,7 @@ import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
 import com.scs.sdfs.rspns.CmdPutFileResponse;
+import com.scs.sdfs.server.Crypto;
 
 /**
  * Thread listens to console 
@@ -30,15 +36,12 @@ public class ConsoleListener extends Thread{
 	private ClientConnection clientConnection;
 	private ClientManager clientManager = ClientManager.getClientManager();
 	
-	public static final String CLIENT_DATA_DIR = "";
-	
 	public ConsoleListener(SSLContext sslContext) {
 		super();
 		this.sslContext = sslContext;
 	}
 
 	public void run() {
-		
 		System.out.println("Welcome to the SDFS Client Interface !");
 		
 		while(true){
@@ -65,7 +68,7 @@ public class ConsoleListener extends Thread{
 			System.out.println("Invalid command");
 		}
 		
-		Methods method = Methods.valueOf(tokens[0].toUpperCase());
+		Method method = Method.valueOf(tokens[0].toUpperCase());
 		
 		//process each method
 		switch (method) {
@@ -82,7 +85,7 @@ public class ConsoleListener extends Thread{
 			handleDelegate(tokens);
 			break;
 		case _DELEGATE:
-			handleDelegateStar(tokens);
+			handleDelegate(tokens, true);
 			break;
 		case CLOSE:
 			handleClose(tokens);
@@ -94,10 +97,14 @@ public class ConsoleListener extends Thread{
 	 * handle START command
 	 * @param tokens
 	 */
-	private void handleStart(String[] tokens){
-		if(tokens.length != 2){
+	private void handleStart(String[] tokens) {
+		if (tokens.length != 2) {
 			System.out.println("Usage: START <SERVER_IP>");
-		}else{
+		}
+		else {
+			if (new File(Constants.META_FILE).exists()) {
+				clientManager.replaceFileMap(Crypto.loadFromDisk(Constants.META_FILE));
+			}
 			serverConnection = new ServerConnection(sslContext);
 		}
 	}
@@ -106,30 +113,26 @@ public class ConsoleListener extends Thread{
 	 * handle GET command
 	 * @param tokens
 	 */
-	private void handleGet(String[] tokens){
-		if(tokens.length != 2){
-			System.out.println("Usage: GET <UID>");
-		}else{
+	private void handleGet(String[] tokens) {
+		if(tokens.length != 2) {
+			System.out.println("Usage: GET <fileUID>");
+		}
+		else {
 			String uid = tokens[1];
-			
 			CommandArgument get = null;
-			if(clientManager.isOwner(uid)){
-				get = new CmdGetFileArgument(uid, null);
-			}
-			else if(clientManager.hasValidDelegationToken(uid, Methods.GET)){
-				DelegationToken token = clientManager.getDelegationToken(uid, Methods.GET);
+			
+			if (clientManager.hasValidDelegationToken(uid, Method.GET)) {
+				DelegationToken token = clientManager.getDelegationToken(uid, Method.GET);
 				get = new CmdGetFileArgument(uid, token);
-			}else{
-				System.out.println("Client has no read access to file [" + "]" + uid);
-				return;
+			}
+			else {
+				get = new CmdGetFileArgument(uid, null);
 			}
 			
 			/* blocking calls to server */
 			serverConnection.sendCommand(get); 
-			CmdGetFileResponse response = (CmdGetFileResponse)serverConnection.readFromServer(Methods.GET);
-			//TODO write fileContents to file
-			
-			Utils.writeToFile(CLIENT_DATA_DIR + "/" + uid, response.data);
+			CmdGetFileResponse response = (CmdGetFileResponse)serverConnection.readFromServer(Method.GET);
+			Utils.writeToFile(Constants.DATA_FOLDER + File.separator + uid, response.data);
 		}
 	}
 	
@@ -139,37 +142,46 @@ public class ConsoleListener extends Thread{
 	 */
 	private void handlePut(String[] tokens) {
 		if (tokens.length != 2) {
-			System.out.println("Usage: PUT <UID>");
-		} else {
+			System.out.println("Usage: PUT <fileUID>");
+		}
+		else {
 			String uid = tokens[1];
-			byte[] fileContents = Utils.readFromFile(CLIENT_DATA_DIR + "/" + uid);
-
+			byte[] fileContents = Utils.readFromFile(Constants.DATA_FOLDER + File.separator + uid);
+			
+			boolean addFileEntry = false;
 			CommandArgument put = null;
-			if (clientManager.isOwner(uid)) {
-				put = new CmdPutFileArgument(uid, fileContents, null);
-			} else if (clientManager.hasValidDelegationToken(uid, Methods.PUT)) {
-				DelegationToken token = clientManager.getDelegationToken(uid, Methods.PUT);
+			
+			if (clientManager.hasValidDelegationToken(uid, Method.PUT)) {
+				DelegationToken token = clientManager.getDelegationToken(uid, Method.PUT);
 				put = new CmdGetFileArgument(uid, token);
-			} else {
-				System.out.println("Client has no write access to file [" + "]" + uid);
-				return;
+			}
+			else {
+				put = new CmdPutFileArgument(uid, fileContents, null);
+				addFileEntry = true;
 			}
 			
 			/* blocking calls to server */
-			serverConnection.sendCommand(put); 
-			CmdPutFileResponse response = (CmdPutFileResponse)serverConnection.readFromServer(Methods.PUT);
+			serverConnection.sendCommand(put);
+			CmdPutFileResponse response = (CmdPutFileResponse)serverConnection.readFromServer(Method.PUT);
+			System.out.println("Received response from server: " + response.code);
+			
+			if (addFileEntry && response.code == ErrorCode.OK) {
+				clientManager.makeOwner(uid);
+			}
 		}
-		
-		
 	}
 	
 	/**
 	 * handle DELEGATE command
 	 * @param tokens
 	 */
-	private void handleDelegate(String[] tokens){
+	private void handleDelegate(String[] tokens) {
+		handleDelegate(tokens, false);
+	}
+	
+	private void handleDelegate(String[] tokens, boolean star) {
 		if(tokens.length < 5){
-			System.out.println("Usage: DELEGATE <UID> <CLIENT> <DURATION> <[RIGHTS]>");
+			System.out.println("Usage: DELEGATE <fileUID> <CLIENT> <DURATION> <[RIGHTS]>");
 		}else{
 			String uid = tokens[1];
 			String target = tokens[2];
@@ -192,9 +204,9 @@ public class ConsoleListener extends Thread{
 				return;
 			}
 			
-			Set<Rights> rights = new HashSet<Rights>();
+			Set<Right> rights = new HashSet<Right>();
 			for(int i = 4; i < tokens.length; i++){
-				rights.add(Rights.valueOf(tokens[i].toUpperCase()));
+				rights.add(Right.valueOf(tokens[i].toUpperCase()));
 			}
 			
 			long startEpoch = System.currentTimeMillis();
@@ -202,8 +214,8 @@ public class ConsoleListener extends Thread{
 			clientConnection = new ClientConnection(sslContext, host, port);
 			
 			DelegationPrimitive primitive = new DelegationPrimitive(clientManager.getAlias(), target, 
-					uid, rights.contains(Rights.READ), rights.contains(Rights.WRITE), 
-					rights.contains(Rights.DELEGATE), startEpoch, duration);
+					uid, rights.contains(Right.READ), rights.contains(Right.WRITE), 
+					rights.contains(Right.DELEGATE), startEpoch, duration);
 			
 			Certificate certificate = clientManager.getCertificate();
 			PrivateKey privateKey = clientManager.getPrivateKey();
@@ -216,8 +228,8 @@ public class ConsoleListener extends Thread{
 				delegate = new CmdDelegateRightsArgument(uid, token);
 				clientConnection.sendCommand(delegate);
 			}
-			else if(clientManager.hasValidDelegationToken(uid, Methods.DELEGATE)){
-				DelegationToken parentToken = clientManager.getDelegationToken(uid, Methods.DELEGATE);
+			else if(clientManager.hasValidDelegationToken(uid, Method.DELEGATE)){
+				DelegationToken parentToken = clientManager.getDelegationToken(uid, Method.DELEGATE);
 				token = new DelegationToken(primitive, certificate, parentToken, privateKey);
 				delegate = new CmdDelegateRightsArgument(uid, token);
 				clientConnection.sendCommand(delegate);
@@ -231,120 +243,17 @@ public class ConsoleListener extends Thread{
 	}
 	
 	/**
-	 * handle DELEGATE* command
-	 * @param tokens
-	 */
-	private void handleDelegateStar(String[] tokens){
-		if(tokens.length != 4){
-			System.out.println("Usage: DELEGATE* <UID> <CLIENT> <DURATION> <[RIGHTS]>");
-		}else{
-			String uid = tokens[1];
-			String target = tokens[2];
-			
-			String[] clientAddress = target.split(":");
-			String host = clientAddress[0];
-			int port;
-			try{
-				port = Integer.parseInt(clientAddress[1]);
-			}catch(NumberFormatException e){
-				System.out.println("CLIENT must be of the form IP:PORT where PORT is a valid port number");
-				return;
-			}
-			
-			long duration;
-			try{
-				duration = Long.valueOf(tokens[3]) * 1000;
-			}catch(NumberFormatException e){
-				System.out.println("DURATION has to be a number");
-				return;
-			}
-			
-			long startEpoch = System.currentTimeMillis();
-			
-			
-			
-			Set<Rights> rights = new HashSet<Rights>();
-			for(int i = 4; i < tokens.length; i++){
-				rights.add(Rights.valueOf(tokens[i].toUpperCase()));
-				rights.add(Rights.DELEGATE); // DELEGATE* means DELEGATE rights are present
-			}
-			
-			
-			clientConnection = new ClientConnection(sslContext, host, port);
-
-			DelegationPrimitive primitive = new DelegationPrimitive(
-					clientManager.getAlias(), target, uid,
-					rights.contains(Rights.READ),
-					rights.contains(Rights.WRITE),
-					rights.contains(Rights.DELEGATE), startEpoch, duration);
-
-			Certificate certificate = clientManager.getCertificate();
-			PrivateKey privateKey = clientManager.getPrivateKey();
-
-			DelegationToken token;
-			CommandArgument delegate;
-			
-			if(clientManager.isOwner(uid)){
-				token = new DelegationToken(primitive, certificate, null, privateKey);
-				delegate = new CmdDelegateRightsArgument(uid, token);
-				clientConnection.sendCommand(delegate);
-			}
-			else if(clientManager.hasValidDelegationToken(uid, Methods._DELEGATE)){
-				DelegationToken parentToken = clientManager.getDelegationToken(uid, Methods.DELEGATE);
-				token = new DelegationToken(primitive, certificate, parentToken, privateKey);
-				delegate = new CmdDelegateRightsArgument(uid, token);
-				clientConnection.sendCommand(delegate);
-			}
-			else{
-				System.out.println("Client has no delegate* access to file [" + "]" + uid);
-			}
-			
-			clientConnection.close();
-		}
-	}
-	
-	/**
 	 * handle CLOSE command
 	 * @param tokens
 	 */
 	private void handleClose(String[] tokens){
 		if(tokens.length != 1){
 			System.out.println("Usage: CLOSE");
-		}else{
+		}
+		else{
 			System.out.println("Exiting .... ");
-			//clientManager.saveToDisk();
+			Crypto.saveToDisk(Constants.META_FILE, clientManager.getSerializedFileMap(), true);
 			serverConnection.close();
 		}
 	}
-	
-	enum Methods{
-		START ("START"),
-		GET ("GET"),
-		PUT ("PUT"),
-		DELEGATE ("DELEGATE"),
-		_DELEGATE("DELEGATE*"),
-		CLOSE ("CLOSE");
-		
-		private String method;
-		
-		Methods(String method){
-			this.method = method;
-		}	
-	}
-	
-	enum Rights{
-		READ ("READ"),
-		WRITE ("WRITE"),
-		DELEGATE ("DELEGATE");
-		
-		private String right;
-		
-		Rights(String right){
-			this.right = right;
-		}
-	}
-	
-
 }
-
-

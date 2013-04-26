@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.scs.sdfs.Constants;
 import com.scs.sdfs.ErrorCode;
 import com.scs.sdfs.args.CmdGetFileArgument;
 import com.scs.sdfs.args.CmdPutFileArgument;
@@ -17,13 +18,8 @@ public class FileManager {
 
 	private static final Gson GSON = new Gson();
 	
-	private static final String DATA_FOLDER = "data";
-	private static final String FILE_FOLDER = "data/files";
-	
-	private static final String META_FILE = "data/meta.info";
-	
 	/**
-	 * This maps the file UID to the metadata object for that file.
+	 * This maps the file fileUID to the metadata object for that file.
 	 */
 	public HashMap<String, MetaFile> files;
 
@@ -38,13 +34,13 @@ public class FileManager {
 	}
 
 	public boolean init() {
-		if (new File(META_FILE).exists()) {
+		if (new File(Constants.META_FILE).exists()) {
 			loadMetadata();
 		}
 		else {
 			files = new HashMap<String, MetaFile>();
 		}
-		File fileStore = new File(FILE_FOLDER);
+		File fileStore = new File(Constants.FILE_FOLDER);
 		if (!(fileStore.exists() || fileStore.mkdirs())) {
 			return false;
 		}
@@ -72,7 +68,7 @@ public class FileManager {
 				long now = System.currentTimeMillis();
 				if (meta.owner.equals(client) ||
 						DelegationVerifier.validateToken(meta.owner, client, arg.UID, arg.token, false, now)) {
-					File file = new File(FILE_FOLDER + File.separator + meta.diskName);
+					File file = new File(Constants.FILE_FOLDER + File.separator + meta.diskName);
 					if (file.exists()) {
 						response.data = Crypto.loadFromDisk(file.getAbsolutePath(), meta.fileKey, meta.fileIv);
 						response.code = ErrorCode.OK;
@@ -106,7 +102,7 @@ public class FileManager {
 				long now = System.currentTimeMillis();
 				if (meta.owner.equals(client) ||
 						DelegationVerifier.validateToken(meta.owner, client, arg.UID, arg.token, true, now)) {
-					File file = new File(FILE_FOLDER + File.separator + meta.diskName);
+					File file = new File(Constants.FILE_FOLDER + File.separator + meta.diskName);
 					byte[] iv = Crypto.saveToDisk(file.getAbsolutePath(), arg.data, meta.fileKey, true);
 					if (iv != null) {
 						System.arraycopy(iv, 0, meta.fileIv, 0, Crypto.IV_LEN);
@@ -120,7 +116,7 @@ public class FileManager {
 			} else {
 				MetaFile newFile = new MetaFile(client, arg.UID, generateNewDiskName(), 
 												Crypto.getKeyFromData(arg.data));
-				File file = new File(FILE_FOLDER + File.separator + newFile.diskName);
+				File file = new File(Constants.FILE_FOLDER + File.separator + newFile.diskName);
 				byte[] iv = Crypto.saveToDisk(file.getAbsolutePath(), arg.data, newFile.fileKey, true);
 				if (iv != null) {
 					System.arraycopy(iv, 0, newFile.fileIv, 0, Crypto.IV_LEN);
@@ -135,7 +131,7 @@ public class FileManager {
 	}
 	
 	private void loadMetadata() {
-		byte[] metadata = Crypto.loadFromDisk(META_FILE);
+		byte[] metadata = Crypto.loadFromDisk(Constants.META_FILE);
 		if (metadata == null || metadata.length == 0) {
 			System.err.println("Insufficient saved metadata!");
 		}
@@ -151,9 +147,9 @@ public class FileManager {
 		if (files == null) {
 			return;
 		}
-		if (new File(DATA_FOLDER).exists() || new File(DATA_FOLDER).mkdir()) {
+		if (new File(Constants.DATA_FOLDER).exists() || new File(Constants.DATA_FOLDER).mkdir()) {
 			byte[] data = GSON.toJson(files).getBytes();
-			if (!Crypto.saveToDisk(META_FILE, data, true)) {
+			if (!Crypto.saveToDisk(Constants.META_FILE, data, true)) {
 				System.err.println("Unable to save metadata to file!");
 			}
 		} else {
@@ -164,7 +160,7 @@ public class FileManager {
 	private String generateNewDiskName() {
 		do {
 			String newName = UUID.randomUUID().toString();
-			if (!new File(FILE_FOLDER + File.separator + newName).exists()) {
+			if (!new File(Constants.FILE_FOLDER + File.separator + newName).exists()) {
 				return newName;
 			}
 		}

@@ -7,6 +7,8 @@ import java.io.IOException;
 import javax.net.ssl.SSLSocket;
 
 import com.google.gson.Gson;
+import com.scs.sdfs.args.CmdGetFileArgument;
+import com.scs.sdfs.args.CmdPutFileArgument;
 import com.scs.sdfs.args.CommandArgument;
 import com.scs.sdfs.rspns.CommandResponse;
 
@@ -36,7 +38,7 @@ public class ClientConnection extends Thread{
 			e.printStackTrace();
 		}
 		
-		while(true){
+		while(!socket.isClosed()) {
 			String data = null;
 			try {
 				data = dis.readUTF();
@@ -49,10 +51,29 @@ public class ClientConnection extends Thread{
 			CommandResponse response = processArgument(argument);
 			sendResponse(response);
 		}
+		
+		System.out.println("Closing client connection thread...");
 	}
 	
 	private CommandResponse processArgument(CommandArgument argument){
-		return null;
+		CommandResponse response = null;
+		switch(argument.command) {
+		case START:
+			System.err.println("Invalid start command received!");
+			break;
+		case GET:
+			response = FileManager.getInstance().commandGetFile(peerCN, (CmdGetFileArgument) argument);
+			break;
+		case PUT:
+			response = FileManager.getInstance().commandPutFile(peerCN, (CmdPutFileArgument) argument);
+			break;
+		case CLOSE:
+			// TODO Handle close connection
+			break;
+		default:
+			System.err.println("Invalid command received!");
+		}
+		return response;
 	}
 	
 	/**

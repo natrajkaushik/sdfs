@@ -144,7 +144,7 @@ public class SSLHelper {
 		Pattern pattern  = Pattern.compile("CN=([^\\,]*)");
 		Matcher matcher = pattern.matcher(principal);
 		String CN = matcher.find() ? matcher.group(1) : null;
-		return CN;
+		return CN.replaceAll(" ", "_");
 	}
 
 }
