@@ -1,5 +1,6 @@
 package com.scs.sdfs.client;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
@@ -21,13 +22,11 @@ public class DelegationConnection {
 	}
 	
 	/**
-	 * Sends a CommandResponse object to the server
+	 * Sends a CommandResponse object to the client
 	 * @param response
 	 */
 	public void sendResponse(CommandResponse response){
-		byte[] toSend = response.toBytes();
-		DataOutputStream dos = null;
-		
+		DataOutputStream dos = null;		
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
 		} catch (IOException e) {
@@ -35,7 +34,7 @@ public class DelegationConnection {
 		}
 		
 		try {
-			dos.write(toSend);
+			dos.writeUTF(response.toString());
 			dos.flush();
 		} catch (IOException e) {
 			
@@ -54,24 +53,23 @@ public class DelegationConnection {
 	 * @return CommandArgument
 	 */
 	public CommandArgument readFromClient(){
-		byte[] data = new byte[0];
-		byte[] buffer = new byte[4096];
-		int byteCount = -1;
+		DataInputStream dis = null;
 		try {
-			while ((byteCount = socket.getInputStream().read(buffer, 0,
-					buffer.length)) > -1) {
-				byte[] tempBuffer = new byte[data.length + byteCount];
-				System.arraycopy(data, 0, tempBuffer, 0, data.length);
-				System.arraycopy(buffer, 0, tempBuffer, data.length,
-						byteCount);
-				data = tempBuffer;
-			}
+			dis = new DataInputStream(socket.getInputStream());
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		String _data = new String(data);
-		CommandArgument argument = gson.fromJson(_data, CommandArgument.class);
+		String data = null;
+		try {
+			data = dis.readUTF();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		CommandArgument argument = gson.fromJson(data, CommandArgument.class);
 		return argument;
 	}
 	

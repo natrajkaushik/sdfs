@@ -1,5 +1,6 @@
 package com.scs.sdfs.client;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
@@ -50,9 +51,7 @@ public class ClientConnection {
 	 * @param argument
 	 */
 	public void sendCommand(CommandArgument argument){
-		byte[] toSend = argument.toBytes();
-		DataOutputStream dos = null;
-		
+		DataOutputStream dos = null;		
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
 		} catch (IOException e) {
@@ -60,7 +59,7 @@ public class ClientConnection {
 		}
 		
 		try {
-			dos.write(toSend);
+			dos.writeUTF(argument.toString());
 			dos.flush();
 		} catch (IOException e) {
 			
@@ -79,28 +78,27 @@ public class ClientConnection {
 	 * @return CommandResponse
 	 */
 	public CommandResponse readFromServer(Methods method){
-		byte[] data = new byte[0];
-		byte[] buffer = new byte[4096];
-		int byteCount = -1;
+		DataInputStream dis = null;
 		try {
-			while ((byteCount = socket.getInputStream().read(buffer, 0,
-					buffer.length)) > -1) {
-				byte[] tempBuffer = new byte[data.length + byteCount];
-				System.arraycopy(data, 0, tempBuffer, 0, data.length);
-				System.arraycopy(buffer, 0, tempBuffer, data.length,
-						byteCount);
-				data = tempBuffer;
-			}
+			dis = new DataInputStream(socket.getInputStream());
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
-		String _data = new String(data);
+		String data = null;
+		try {
+			data = dis.readUTF();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		switch(method){
 		case DELEGATE:
-			return gson.fromJson(_data, CmdGetFileResponse.class);
+			return gson.fromJson(data, CmdGetFileResponse.class);
 		case _DELEGATE:
-			return gson.fromJson(_data, CmdPutFileResponse.class);
+			return gson.fromJson(data, CmdPutFileResponse.class);
 		default:
 			return null;
 		}
