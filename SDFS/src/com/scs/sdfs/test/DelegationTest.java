@@ -29,7 +29,7 @@ public class DelegationTest {
 				Constants.TRUSTED_STORE_PASSWORD, Constants.TRUSTED_STORE_TYPE);
 		Certificate ROOT_CERTIFICATE = null;
 		try {
-			ROOT_CERTIFICATE = trustedKeyStore.getCertificate("trusted");
+			ROOT_CERTIFICATE = trustedKeyStore.getCertificate(Constants.ROOT_ALIAS);
 		} catch (KeyStoreException e) {
 			e.printStackTrace();
 		}

@@ -34,9 +34,10 @@ public class DelegationVerifier {
 				try {
 					token.sourceCert.verify(rootCert.getPublicKey());
 					return true;
-				}
-				catch (GeneralSecurityException e) {
+				} catch (GeneralSecurityException e) {
 					System.err.println("Unable to verify token signer's certificate!");
+				} catch (NullPointerException e) {
+					System.err.println("Unable to validate against root certificate!");
 				}
 			} else {
 				System.err.println("Token signature failed to verify!");
