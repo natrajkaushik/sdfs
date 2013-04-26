@@ -1,6 +1,7 @@
 package com.scs.sdfs.client;
 
 import java.io.IOException;
+import java.net.SocketException;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
@@ -18,6 +19,8 @@ public class DelegationServerThread extends Thread{
 	private int port;
 	private DelegationConnection delegationConnection;
 	
+	private SSLServerSocket serverSocket = null;
+	private boolean keepLooping = true;
 	
 	public DelegationServerThread(SSLContext sslContext, int port) {
 		super();
@@ -28,19 +31,18 @@ public class DelegationServerThread extends Thread{
 	@Override
 	public void run() {
 		SSLServerSocketFactory factory = (SSLServerSocketFactory) sslContext.getServerSocketFactory();
-		SSLServerSocket serverSocket = null;
 		try {
 			serverSocket = (SSLServerSocket) factory.createServerSocket(port);
 			serverSocket.setNeedClientAuth(true);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return;
 		}
 		
 		SSLSocket socket = null;
 		try {
 			System.out.println("Delegation Server has started");
-			while(true){
+			while(keepLooping) {
 				socket = (SSLSocket) serverSocket.accept();
 				String peerPrincipal = socket.getSession().getPeerPrincipal().getName();
 				String peerCN = null;
@@ -51,9 +53,20 @@ public class DelegationServerThread extends Thread{
 				delegationConnection = new DelegationConnection(socket, peerCN);
 				delegationConnection.processRequest();
 			}
-			
+		} catch (SocketException e) {
+			// stopping server socket
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void stopServerThread() {
+		keepLooping = false;
+		try {
+			if (serverSocket != null) {
+				serverSocket.close();
+			}
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}

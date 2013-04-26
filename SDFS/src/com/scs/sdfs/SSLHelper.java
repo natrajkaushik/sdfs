@@ -1,9 +1,6 @@
 package com.scs.sdfs;
 
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
+import java.security.GeneralSecurityException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,9 +15,6 @@ import javax.net.ssl.TrustManagerFactory;
  * Does all the processing required to establish two way SSL sockets by setting up the KeyStore and TrustedStore
  */
 public class SSLHelper {
-
-	
-	
 	// KeyStore parameters
 	String keyStorePath, keyStoreType, keyStorePass;
 	
@@ -34,29 +28,13 @@ public class SSLHelper {
 	public KeyManager[] getKeyManagers(String path, String password, String keyStoreType){
 		KeyManagerFactory keyFactory = null;
 		try {
-			keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory
-					.getDefaultAlgorithm());
-		} catch (NoSuchAlgorithmException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+			keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+			keyFactory.init(KeyStoreHelper.getKeyStore(path, password, keyStoreType), password.toCharArray());
+		} catch (GeneralSecurityException e) {
+			System.err.println("Couldn't initialize key factory!");
+			e.printStackTrace();
 		}
-
-		try {
-			keyFactory.init(KeyStoreHelper.getKeyStore(path,
-					password, keyStoreType), password.toCharArray());
-		} catch (UnrecoverableKeyException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (KeyStoreException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		} catch (NoSuchAlgorithmException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
 		KeyManager[] keyManagers = keyFactory.getKeyManagers();
-		
 		return keyManagers;
 	}
 	
@@ -70,20 +48,12 @@ public class SSLHelper {
 	public TrustManager[] getTrustManagers(String path, String password, String keyStoreType){
 		TrustManagerFactory trustedFactory = null;
 		try {
-			trustedFactory = TrustManagerFactory
-					.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-		} catch (NoSuchAlgorithmException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-
-		try {
+			trustedFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
 			trustedFactory.init(KeyStoreHelper.getKeyStore(path, password, null));
-		} catch (KeyStoreException e3) {
-			// TODO Auto-generated catch block
-			e3.printStackTrace();
+		} catch (GeneralSecurityException e) {
+			System.err.println("Couldn't load trust manager!");
+			e.printStackTrace();
 		}
-
 		TrustManager[] trustManagers = trustedFactory.getTrustManagers();
 		return trustManagers;
 	}
@@ -97,15 +67,10 @@ public class SSLHelper {
 		SSLContext sslContext = null;
 		try {
 			sslContext = SSLContext.getInstance("TLS");
-		} catch (NoSuchAlgorithmException e2) {
-			// TODO Auto-generated catch block
-			e2.printStackTrace();
-		}
-		try {
 			sslContext.init(keyManagers, trustManagers, null);
-		} catch (KeyManagementException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (GeneralSecurityException e) {
+			System.err.println("Couldn't initialize SSL context!");
+			e.printStackTrace();
 		}
 		return sslContext;
 	}
@@ -131,7 +96,6 @@ public class SSLHelper {
 	}
 
 	private SSLHelper(String keyStorePath, String keyStorePass) {
-		super();
 		this.keyStorePath = keyStorePath;
 		this.keyStorePass = keyStorePass;
 	}
@@ -146,5 +110,4 @@ public class SSLHelper {
 		String CN = matcher.find() ? matcher.group(1) : null;
 		return CN.replaceAll(" ", "_");
 	}
-
 }

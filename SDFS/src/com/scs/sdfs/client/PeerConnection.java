@@ -9,16 +9,13 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.gson.Gson;
-import com.scs.sdfs.Method;
 import com.scs.sdfs.args.CommandArgument;
-import com.scs.sdfs.rspns.CmdGetFileResponse;
-import com.scs.sdfs.rspns.CmdPutFileResponse;
 import com.scs.sdfs.rspns.CommandResponse;
 
 /**
  * Handles the client connection for delegation requests 
  */
-public class ClientConnection {
+public class PeerConnection {
 
 	private SSLContext sslContext;
 	private String host;
@@ -26,7 +23,7 @@ public class ClientConnection {
 	private SSLSocket socket;
 	private static final Gson GSON = new Gson();
 	
-	public ClientConnection(SSLContext sslContext, String host, int port) {
+	public PeerConnection(SSLContext sslContext, String host, int port) {
 		this.sslContext = sslContext;
 		this.host = host;
 		this.port = port;
@@ -54,18 +51,14 @@ public class ClientConnection {
 		DataOutputStream dos = null;		
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		try {
 			dos.writeUTF(argument.toString());
 			dos.flush();
 		} catch (IOException e) {
-			
+			System.err.println("Unable to send command to peer!");
+			e.printStackTrace();
 		}
 		
-		if(dos != null){
+		if (dos != null){
 			try {
 				dos.close();
 			} catch (IOException e) {
@@ -74,35 +67,21 @@ public class ClientConnection {
 	}
 	
 	/**
-	 * reads response from client
+	 * reads response from peer
 	 * @return CommandResponse
 	 */
-	public CommandResponse readFromServer(Method method){
+	public CommandResponse readFromServer(){
 		DataInputStream dis = null;
-		try {
-			dis = new DataInputStream(socket.getInputStream());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 		String data = null;
 		try {
+			dis = new DataInputStream(socket.getInputStream());
 			data = dis.readUTF();
+			return GSON.fromJson(data, CommandResponse.class);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.err.println("Unable to read peer response!");
 			e.printStackTrace();
 		}
-		
-		switch(method){
-		case DELEGATE:
-			return GSON.fromJson(data, CmdGetFileResponse.class);
-		case _DELEGATE:
-			return GSON.fromJson(data, CmdPutFileResponse.class);
-		default:
-			return null;
-		}
-		
+		return null;
 	}
 	
 	/**
@@ -114,10 +93,7 @@ public class ClientConnection {
 				socket.close();
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
-
 }

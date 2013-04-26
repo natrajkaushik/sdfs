@@ -23,7 +23,7 @@ public class Client {
 	 * creates the listener socket which waits for delegation messages from other clients
 	 */
 	public void createDelegationServer(){
-		new DelegationServerThread(sslContext, port).start();
+		new DelegationServerThread(sslContext, port);
 	}
 
 	/**
@@ -46,14 +46,13 @@ public class Client {
 			System.exit(1);
 		}
 		
+		ClientManager.getClientManager(alias, password);
+		
 		createDelegationServer();
 		createConsoleListener();
-		
-		ClientManager.getClientManager(alias, password);
 	}
 	
 	public Client(String alias, int port, String password) {
-		super();
 		this.alias = alias;
 		this.password = password;
 		this.port = port;

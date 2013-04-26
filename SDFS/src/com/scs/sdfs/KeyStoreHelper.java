@@ -43,20 +43,13 @@ public class KeyStoreHelper {
 		
 		try {
 			keyStore.load(keyStoreStream, keyStorePassword);
-			// Enumeration<String> aliases = keyStore.aliases();
-			// while(aliases.hasMoreElements()){
-				// System.out.println(aliases.nextElement());
-			// }
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (CertificateException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} // catch (KeyStoreException e) {
-			// TODO Auto-generated catch block
-			// e.printStackTrace();
-		// }
+		}
 		
 		return keyStore;
 	}
@@ -72,22 +65,37 @@ public class KeyStoreHelper {
 	
 	public static PrivateKey getPrivateKey(String alias, String password){
 		KeyStore keyStore = getKeyStore(Constants.KEY_DUMP_FOLDER + "/" + alias + ".p12", password, Constants.KEY_STORE_TYPE);		
-		
-			try {
-				return (PrivateKey)keyStore.getKey(alias, password.toCharArray());
-			} catch (UnrecoverableKeyException e) {
-				e.printStackTrace();
-				return null;
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-				return null;
-			} catch (KeyStoreException e){
-				e.printStackTrace();
-				return null;
-			}
+
+		try {
+			return (PrivateKey)keyStore.getKey(alias, password.toCharArray());
+		} catch (UnrecoverableKeyException e) {
+			e.printStackTrace();
+			return null;
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		} catch (KeyStoreException e){
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
-	
+	/**
+	 * @return Root CA's public key object
+	 */
+	public static Certificate getRootCertificate(){
+		KeyStore trustedKeyStore = KeyStoreHelper.getKeyStore(Constants.TRUSTED_STORE_PATH, 
+				Constants.TRUSTED_STORE_PASSWORD, Constants.TRUSTED_STORE_TYPE);
+		Certificate ROOT_CERTIFICATE = null;
+		try {
+			ROOT_CERTIFICATE = trustedKeyStore.getCertificate(Constants.ROOT_ALIAS);
+		} catch (KeyStoreException e) {
+			System.err.println("Couldn't get root certificate!");
+			e.printStackTrace();
+		}
+		return ROOT_CERTIFICATE;
+	}
+		
 	public static void main(String[] args) {
 		//addCertificate(NODE_A);
 		//displayProviders();
@@ -95,5 +103,4 @@ public class KeyStoreHelper {
 		//getKeyStore("./keydump/node_a.p12", "nodea", "PKCS12");
 		getKeyStore("./stores/trusted.jks", "server", "JKS");
 	}
-
 }

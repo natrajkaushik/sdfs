@@ -22,6 +22,8 @@ public class ClientManager {
 	private String alias;
 	private String password;
 	
+	private DelegationServerThread delegator;
+	
 	private Certificate certificate;
 	private PrivateKey privateKey;
 	
@@ -64,6 +66,10 @@ public class ClientManager {
 
 	public PrivateKey getPrivateKey() {
 		return privateKey;
+	}
+	
+	public void setDelegationThread(DelegationServerThread thread) {
+		delegator = thread;
 	}
 
 	/**
@@ -175,5 +181,9 @@ public class ClientManager {
 			FILE_ACCESS_RIGHTS_TABLE = GSON.fromJson(new String(data), 
 					new TypeToken<HashMap<String, MetaFile>>(){}.getType());
 		}
+	}
+	
+	public void close() {
+		delegator.stopServerThread();
 	}
 }

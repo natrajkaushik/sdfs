@@ -22,8 +22,9 @@ import com.scs.sdfs.args.CmdPutFileArgument;
 import com.scs.sdfs.args.CommandArgument;
 import com.scs.sdfs.delegation.DelegationPrimitive;
 import com.scs.sdfs.delegation.DelegationToken;
+import com.scs.sdfs.rspns.CmdDelegateRightsResponse;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
-import com.scs.sdfs.rspns.CmdPutFileResponse;
+import com.scs.sdfs.rspns.CommandResponse;
 import com.scs.sdfs.server.Crypto;
 
 /**
@@ -33,7 +34,7 @@ public class ConsoleListener extends Thread{
 
 	private SSLContext sslContext;
 	private ServerConnection serverConnection;
-	private ClientConnection clientConnection;
+	private PeerConnection peerConnection;
 	private ClientManager clientManager = ClientManager.getClientManager();
 	
 	public ConsoleListener(SSLContext sslContext) {
@@ -52,7 +53,6 @@ public class ConsoleListener extends Thread{
 					commandProcessor(line);
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -132,7 +132,16 @@ public class ConsoleListener extends Thread{
 			/* blocking calls to server */
 			serverConnection.sendCommand(get); 
 			CmdGetFileResponse response = (CmdGetFileResponse)serverConnection.readFromServer(Method.GET);
-			Utils.writeToFile(Constants.DATA_FOLDER + File.separator + uid, response.data);
+			if (response == null) {
+				System.err.println("Couldn't get response from server!");
+			}
+			else {
+				if (response.code == ErrorCode.OK) {
+					Utils.writeToFile(Constants.DATA_FOLDER + File.separator + uid, response.data);
+				} else {
+					System.out.println("Error: " + response.code);
+				}
+			}
 		}
 	}
 	
@@ -162,11 +171,16 @@ public class ConsoleListener extends Thread{
 			
 			/* blocking calls to server */
 			serverConnection.sendCommand(put);
-			CmdPutFileResponse response = (CmdPutFileResponse)serverConnection.readFromServer(Method.PUT);
-			System.out.println("Received response from server: " + response.code);
+			CommandResponse response = serverConnection.readFromServer(Method.PUT);
 			
-			if (addFileEntry && response.code == ErrorCode.OK) {
-				clientManager.makeOwner(uid);
+			if (response != null) {
+				if (response.code == ErrorCode.OK) {
+					if (addFileEntry) {
+						clientManager.makeOwner(uid);
+					}
+				} else {
+					System.out.println("Error: " + response.code);
+				}
 			}
 		}
 	}
@@ -211,7 +225,7 @@ public class ConsoleListener extends Thread{
 			
 			long startEpoch = System.currentTimeMillis();
 			
-			clientConnection = new ClientConnection(sslContext, host, port);
+			peerConnection = new PeerConnection(sslContext, host, port);
 			
 			DelegationPrimitive primitive = new DelegationPrimitive(clientManager.getAlias(), target, 
 					uid, rights.contains(Right.READ), rights.contains(Right.WRITE), 
@@ -226,19 +240,26 @@ public class ConsoleListener extends Thread{
 			if(clientManager.isOwner(uid)){
 				token = new DelegationToken(primitive, certificate, null, privateKey);
 				delegate = new CmdDelegateRightsArgument(uid, token);
-				clientConnection.sendCommand(delegate);
 			}
 			else if(clientManager.hasValidDelegationToken(uid, Method.DELEGATE)){
 				DelegationToken parentToken = clientManager.getDelegationToken(uid, Method.DELEGATE);
 				token = new DelegationToken(primitive, certificate, parentToken, privateKey);
 				delegate = new CmdDelegateRightsArgument(uid, token);
-				clientConnection.sendCommand(delegate);
 			}
 			else{
 				System.out.println("Client has no delegate access to file [" + "]" + uid);
+				return;
 			}
+
+			peerConnection.sendCommand(delegate);
+			CmdDelegateRightsResponse response = (CmdDelegateRightsResponse) peerConnection.readFromServer();
+			peerConnection.close();
 			
-			clientConnection.close();
+			if (response != null && response.code == ErrorCode.OK) {
+				System.out.println("Delated successfully!");
+			} else {
+				System.out.println("Error while delegating!");
+			}
 		}
 	}
 	
@@ -254,6 +275,7 @@ public class ConsoleListener extends Thread{
 			System.out.println("Exiting .... ");
 			Crypto.saveToDisk(Constants.META_FILE, clientManager.getSerializedFileMap(), true);
 			serverConnection.close();
+			clientManager.close();
 		}
 	}
 }

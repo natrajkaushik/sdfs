@@ -34,8 +34,9 @@ public class ClientConnection extends Thread{
 		try {
 			dis = new DataInputStream(socket.getInputStream());
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.err.println("Couldn't connect to client!");
 			e.printStackTrace();
+			return;
 		}
 		
 		while(!socket.isClosed()) {
@@ -43,8 +44,9 @@ public class ClientConnection extends Thread{
 			try {
 				data = dis.readUTF();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
+				System.err.println("Couldn't read command from client!");
 				e.printStackTrace();
+				continue;
 			}
 			
 			CommandArgument argument = GSON.fromJson(data, CommandArgument.class);
@@ -68,7 +70,6 @@ public class ClientConnection extends Thread{
 			response = FileManager.getInstance().commandPutFile(peerCN, (CmdPutFileArgument) argument);
 			break;
 		case CLOSE:
-			// TODO Handle close connection
 			break;
 		default:
 			System.err.println("Invalid command received!");
@@ -84,15 +85,11 @@ public class ClientConnection extends Thread{
 		DataOutputStream dos = null;		
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		try {
 			dos.writeUTF(response.toString());
 			dos.flush();
 		} catch (IOException e) {
-			
+			System.err.println("Couldn't send response to client!");
+			e.printStackTrace();
 		}
 		
 		if(dos != null){
@@ -102,5 +99,4 @@ public class ClientConnection extends Thread{
 			}
 		}
 	}
-
 }

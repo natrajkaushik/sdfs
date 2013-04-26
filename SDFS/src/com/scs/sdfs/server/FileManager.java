@@ -97,11 +97,11 @@ public class FileManager {
 			response.code = ErrorCode.INVALID_ARGUMENT;
 		}
 		else {
-			if (files.containsKey(arg.UID)) {
-				MetaFile meta = files.get(arg.UID);
+			if (files.containsKey(arg.uid)) {
+				MetaFile meta = files.get(arg.uid);
 				long now = System.currentTimeMillis();
 				if (meta.owner.equals(client) ||
-						DelegationVerifier.validateToken(meta.owner, client, arg.UID, arg.token, true, now)) {
+						DelegationVerifier.validateToken(meta.owner, client, arg.uid, arg.token, true, now)) {
 					File file = new File(Constants.FILE_FOLDER + File.separator + meta.diskName);
 					byte[] iv = Crypto.saveToDisk(file.getAbsolutePath(), arg.data, meta.fileKey, true);
 					if (iv != null) {
@@ -114,14 +114,14 @@ public class FileManager {
 					response.code = ErrorCode.UNAUTHORIZED_ACCESS;
 				}
 			} else {
-				MetaFile newFile = new MetaFile(client, arg.UID, generateNewDiskName(), 
+				MetaFile newFile = new MetaFile(client, arg.uid, generateNewDiskName(), 
 												Crypto.getKeyFromData(arg.data));
 				File file = new File(Constants.FILE_FOLDER + File.separator + newFile.diskName);
 				byte[] iv = Crypto.saveToDisk(file.getAbsolutePath(), arg.data, newFile.fileKey, true);
 				if (iv != null) {
 					System.arraycopy(iv, 0, newFile.fileIv, 0, Crypto.IV_LEN);
 					response.code = ErrorCode.OK;
-					files.put(arg.UID, newFile);
+					files.put(arg.uid, newFile);
 				} else {
 					response.code = ErrorCode.FILE_NOT_SAVED;
 				}

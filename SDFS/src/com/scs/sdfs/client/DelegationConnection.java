@@ -28,7 +28,11 @@ public class DelegationConnection {
 	 * @param response
 	 */
 	public void sendResponse(CommandResponse response){
-		DataOutputStream dos = null;		
+		if (response == null) {
+			return;
+		}
+		
+		DataOutputStream dos = null;
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
 			dos.writeUTF(response.toString());
@@ -58,10 +62,10 @@ public class DelegationConnection {
 			data = dis.readUTF();
 		} catch (IOException e) {
 			e.printStackTrace();
+			return null;
 		}
 		
-		CommandArgument argument = gson.fromJson(data, CommandArgument.class);
-		return argument;
+		return gson.fromJson(data, CommandArgument.class);
 	}
 	
 	/**
@@ -78,6 +82,9 @@ public class DelegationConnection {
 	 * @return process CommandArgument and return CommandResponse
 	 */
 	private CommandResponse processArgument(CommandArgument argument){
+		if (argument == null) {
+			return null;
+		}
 		CommandResponse response = null;
 		switch(argument.command) {
 		case DELEGATE:

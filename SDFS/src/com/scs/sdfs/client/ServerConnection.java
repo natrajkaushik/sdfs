@@ -48,15 +48,11 @@ public class ServerConnection {
 		DataOutputStream dos = null;		
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		try {
 			dos.writeUTF(argument.toString());
 			dos.flush();
 		} catch (IOException e) {
-			
+			System.err.println("Couldn't send command to server!");
+			e.printStackTrace();
 		}
 		
 		if(dos != null){
@@ -73,19 +69,14 @@ public class ServerConnection {
 	 */
 	public CommandResponse readFromServer(Method method){
 		DataInputStream dis = null;
-		try {
-			dis = new DataInputStream(socket.getInputStream());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 		String data = null;
 		try {
+			dis = new DataInputStream(socket.getInputStream());
 			data = dis.readUTF();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.err.println("Couldn't read response from server!");
 			e.printStackTrace();
+			return null;
 		}
 		
 		switch(method){
@@ -96,7 +87,6 @@ public class ServerConnection {
 		default:
 			return null;
 		}
-		
 	}
 	
 	/**
@@ -108,9 +98,7 @@ public class ServerConnection {
 				socket.close();
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
 }

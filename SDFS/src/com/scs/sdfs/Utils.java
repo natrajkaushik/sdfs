@@ -26,15 +26,9 @@ public class Utils {
 		FileOutputStream fos = null;
 		try {
 			fos = new FileOutputStream(file);
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		try {
 			fos.write(contents);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			System.err.println("Couldn't write file to disk!");
 			e.printStackTrace();
 		}
 		
@@ -42,7 +36,6 @@ public class Utils {
 			try {
 				fos.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -51,19 +44,19 @@ public class Utils {
 	public static byte[] readFromFile(String filePath){
 		File file = new File(filePath);
 		
-		if(!file.exists()){
+		if(!file.exists()) {
 			System.out.println("File does not exist [" + filePath + "]");
+			return null;
 		}
 		
 		long _length = file.length();
 		int length = (int) _length;
 		if (length != _length) {
-			System.out.println("File size exceeds 2GB");
+			System.out.println("File size exceeds 2GB!");
 			return null;
 		}
 
 		byte[] data = new byte[length];
-		
 		FileInputStream fis = null;
 		
 		try {
@@ -73,7 +66,7 @@ public class Utils {
 		}
 		
 		try {
-			int bytesRead = fis.read(data);
+			fis.read(data);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -86,9 +79,6 @@ public class Utils {
 			}
 		}
 		
-		return data;
-		
-		
+		return data;	
 	}
-
 }
