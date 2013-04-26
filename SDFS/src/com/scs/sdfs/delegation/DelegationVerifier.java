@@ -1,15 +1,8 @@
 package com.scs.sdfs.delegation;
 
-import java.security.GeneralSecurityException;
-import java.security.Signature;
 import java.security.cert.Certificate;
 
-import com.google.gson.Gson;
-import com.scs.sdfs.Constants;
-
 public class DelegationVerifier {
-	
-	private static final Gson GSON = new Gson();
 	
 	private static Certificate rootCert = null;
 	
@@ -17,35 +10,63 @@ public class DelegationVerifier {
 		rootCert = rootCertificate;
 	}
 
-	public static boolean validateToken(String client, String UID, DelegationToken token, boolean write) {
-		return false;
+	public static boolean validateToken(String owner, String client, String UID, 
+										DelegationToken token, boolean write, long instant) {
+		if (owner == null || client == null || UID == null || token == null) {
+			return false;
+		}
+		
+		return 	checkRightClient(client, token) &&
+				checkTokenActive(instant, token) &&
+				checkPermission(write, token) &&
+				checkCorrectUid(UID, token) &&
+				checkTokenValid(token) &&
+				checkAuthorizedIssuer(owner, client, UID, token, write, instant);
 	}
 	
 	/**
-	 * Attests the validity of a token by verifying its signature and the
-	 * integrity of the certificate used to sign the token.
+	 * Check if token presented by the right client
 	 */
-	public static boolean validateTokenSign(DelegationToken token) {
-		try {
-			Signature verifier = Signature.getInstance(Constants.SIGN_ALGO);
-			verifier.initVerify(token.sourceCert);
-			verifier.update(GSON.toJson(token.primitive).getBytes());
-			if (verifier.verify(token.primitiveSignature)) {
-				try {
-					token.sourceCert.verify(rootCert.getPublicKey());
-					return true;
-				} catch (GeneralSecurityException e) {
-					System.err.println("Unable to verify token signer's certificate!");
-				} catch (NullPointerException e) {
-					System.err.println("Unable to validate against root certificate!");
-				}
-			} else {
-				System.err.println("Token signature failed to verify!");
-			}
-		} catch (GeneralSecurityException e) {
-			System.err.println("Unable to verify token!");
-			e.printStackTrace();
-		}
-		return false;
+	private static boolean checkRightClient(String client, DelegationToken token) {
+		return client.equals(token.primitive.target);
+	}
+	
+	/**
+	 * Check if the token is actively valid
+	 */
+	private static boolean checkTokenActive(long instant, DelegationToken token) {
+		return (instant >= token.primitive.startEpoch && instant <= token.primitive.endEpoch);
+	}
+	
+	/**
+	 * Check if requested action is permitted
+	 */
+	private static boolean checkPermission(boolean write, DelegationToken token) {
+		return write ? token.primitive.canWrite : token.primitive.canRead;
+	}
+
+	/**
+	 * Check if token is for the right UID
+	 */
+	private static boolean checkCorrectUid(String UID, DelegationToken token) {
+		return UID.equals(token.primitive.UID);
+	}
+	
+	/**
+	 * Verifies the authenticity and integrity of the token
+	 */
+	private static boolean checkTokenValid(DelegationToken token) {
+		return token.hasValidSignnature(rootCert);
+	}
+	
+	/**
+	 * Verifies that the token either comes from the owner of 
+	 * the UID, or has a valid chain going back to the owner.
+	 */
+	private static boolean checkAuthorizedIssuer(String owner, String client, String UID, 
+												DelegationToken token, boolean write, long instant) {
+		return (owner.equals(token.primitive.source) || 
+				((token.parentToken != null) && token.parentToken.primitive.canDelegate && 
+						validateToken(owner, token.primitive.source, UID, token.parentToken, write, instant)));
 	}
 }

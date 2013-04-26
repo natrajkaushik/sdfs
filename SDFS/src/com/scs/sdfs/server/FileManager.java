@@ -69,8 +69,9 @@ public class FileManager {
 		else {
 			if (files.containsKey(arg.UID)) {
 				MetaFile meta = files.get(arg.UID);
+				long now = System.currentTimeMillis();
 				if (meta.owner.equals(client) ||
-						DelegationVerifier.validateToken(client, arg.UID, arg.token, false)) {
+						DelegationVerifier.validateToken(meta.owner, client, arg.UID, arg.token, false, now)) {
 					File file = new File(FILE_FOLDER + File.separator + meta.diskName);
 					if (file.exists()) {
 						response.data = Crypto.loadFromDisk(file.getAbsolutePath(), meta.fileKey, meta.fileIv);
@@ -102,8 +103,9 @@ public class FileManager {
 		else {
 			if (files.containsKey(arg.UID)) {
 				MetaFile meta = files.get(arg.UID);
+				long now = System.currentTimeMillis();
 				if (meta.owner.equals(client) ||
-						DelegationVerifier.validateToken(client, arg.UID, arg.token, true)) {
+						DelegationVerifier.validateToken(meta.owner, client, arg.UID, arg.token, true, now)) {
 					File file = new File(FILE_FOLDER + File.separator + meta.diskName);
 					byte[] iv = Crypto.saveToDisk(file.getAbsolutePath(), arg.data, meta.fileKey, true);
 					if (iv != null) {

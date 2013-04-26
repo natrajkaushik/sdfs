@@ -63,6 +63,9 @@ public class DelegationToken {
 		}
 	}
 	
+	/**
+	 * Signs the token primitive with the provided private key
+	 */
 	private void signToken(PrivateKey key) {
 		try {
 			Signature signer = Signature.getInstance(Constants.SIGN_ALGO);
@@ -73,5 +76,36 @@ public class DelegationToken {
 			System.err.println("Couldn't sign token primitive!");
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Attests the validity of this token by verifying its signature and the
+	 * integrity of the certificate used to sign the token.
+	 */
+	public boolean hasValidSignnature(Certificate rootCert) {
+		try {
+			Signature verifier = Signature.getInstance(Constants.SIGN_ALGO);
+			verifier.initVerify(sourceCert);
+			verifier.update(GSON.toJson(primitive).getBytes());
+			if (verifier.verify(primitiveSignature)) {
+				try {
+					sourceCert.verify(rootCert.getPublicKey());
+					return true;
+				} catch (GeneralSecurityException e) {
+					System.err.println("Unable to verify token signer's certificate! " + primitive.source);
+				} catch (NullPointerException e) {
+					System.err.println("Unable to validate against root certificate! " + primitive.source);
+				}
+			} else {
+				System.err.println("Token signature failed to verify!");
+			}
+		} catch (GeneralSecurityException e) {
+			System.err.println("Unable to verify token!");
+			e.printStackTrace();
+		} catch (NullPointerException e) {
+			System.err.println("Failed to load certificate!");
+			e.printStackTrace();
+		}
+		return false;
 	}
 }

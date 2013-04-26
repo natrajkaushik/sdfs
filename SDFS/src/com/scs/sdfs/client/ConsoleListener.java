@@ -216,7 +216,7 @@ public class ConsoleListener extends Thread{
 				
 			}
 			else{
-				System.out.println("Client has no delegate access to file [" + "]" + uid);
+				System.out.println("Client has no target access to file [" + "]" + uid);
 			}
 			
 			clientConnection.close();
@@ -256,7 +256,7 @@ public class ConsoleListener extends Thread{
 				
 			}
 			else{
-				System.out.println("Client has no delegate access to file [" + "]" + uid);
+				System.out.println("Client has no target access to file [" + "]" + uid);
 			}
 		}
 	}
