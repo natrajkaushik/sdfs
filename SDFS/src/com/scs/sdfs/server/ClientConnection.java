@@ -2,6 +2,7 @@ package com.scs.sdfs.server;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 
 import javax.net.ssl.SSLSocket;
@@ -16,6 +17,9 @@ import com.scs.sdfs.rspns.CommandResponse;
  * Handles each client connection on the server 
  */
 public class ClientConnection extends Thread{
+	
+	private static final String PUT_KEY = "\"command\":\"PUT\"";
+	
 	SSLSocket socket;
 	String peerCN;
 	private static final Gson GSON = new Gson();
@@ -30,6 +34,7 @@ public class ClientConnection extends Thread{
 	 * reads from the socket
 	 */
 	public void run() {
+		System.out.println("Hi " + peerCN);
 		DataInputStream dis = null;
 		try {
 			dis = new DataInputStream(socket.getInputStream());
@@ -43,18 +48,35 @@ public class ClientConnection extends Thread{
 			String data = null;
 			try {
 				data = dis.readUTF();
-			} catch (IOException e) {
+			}
+			catch (EOFException e) {
+				System.out.println("Goodbye " + peerCN);
+				break;
+			}
+			catch (IOException e) {
 				System.err.println("Couldn't read command from client!");
 				e.printStackTrace();
 				continue;
 			}
 			
-			CommandArgument argument = GSON.fromJson(data, CommandArgument.class);
+			System.out.println(data);
+			CommandArgument argument = null;
+			
+			try {
+				if (data.contains(PUT_KEY)) {
+					argument = GSON.fromJson(data, CmdPutFileArgument.class);
+				} else {
+					argument = GSON.fromJson(data, CmdGetFileArgument.class);
+				}
+			}
+			catch (Exception e) {
+				System.err.println("Unknown argument received!");
+				continue;
+			}
+			
 			CommandResponse response = processArgument(argument);
 			sendResponse(response);
 		}
-		
-		System.out.println("Closing client connection thread...");
 	}
 	
 	private CommandResponse processArgument(CommandArgument argument){
@@ -90,13 +112,6 @@ public class ClientConnection extends Thread{
 		} catch (IOException e) {
 			System.err.println("Couldn't send response to client!");
 			e.printStackTrace();
-		}
-		
-		if(dos != null){
-			try {
-				dos.close();
-			} catch (IOException e) {
-			}
 		}
 	}
 }

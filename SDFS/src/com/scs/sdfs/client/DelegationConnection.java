@@ -41,13 +41,6 @@ public class DelegationConnection {
 			System.err.println("Unable to send response!");
 			e.printStackTrace();
 		}
-		
-		if(dos != null){
-			try {
-				dos.close();
-			} catch (IOException e) {
-			}
-		}
 	}
 	
 	/**
@@ -65,7 +58,7 @@ public class DelegationConnection {
 			return null;
 		}
 		
-		return gson.fromJson(data, CommandArgument.class);
+		return gson.fromJson(data, CmdDelegateRightsArgument.class);
 	}
 	
 	/**

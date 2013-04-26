@@ -1,5 +1,6 @@
 package com.scs.sdfs.server;
 
+import java.io.File;
 import java.io.IOException;
 
 import javax.net.ssl.SSLContext;
@@ -53,7 +54,7 @@ public class Server{
 	 * Initializes the Server
 	 */
 	private void init(){
-		String keyStorePath = Constants.KEY_DUMP_FOLDER + Constants.SERVER_KEY_STORE;
+		String keyStorePath = Constants.KEY_DUMP_FOLDER + File.separator + Constants.SERVER_KEY_STORE;
 		sslContext = SSLHelper.getSSLHelper(keyStorePath, password).getSSLContext(); // Initialize SSL Context
 		
 		boolean success = Crypto.init(password, KeyStoreHelper.getRootCertificate(), 
@@ -63,11 +64,31 @@ public class Server{
 			System.exit(1);
 		}
 		
+		FileManager.getInstance().init();
 		runServer();
+	}
+	
+	private void addShutdownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+			public void run() {
+				System.out.println("Shutting down...");
+				FileManager.getInstance().wrapUp();
+			}
+		});
 	}
 		
 	public Server(String password) {
 		this.password = password;
+		addShutdownHook();
 		init();
-	}	
+	}
+	
+	public static void main(String[] args) {
+		if(args.length != 1){
+			System.out.println("java Server <password>");
+		}else{
+			String password = args[0];
+			new Server(password);
+		}
+	}
 }

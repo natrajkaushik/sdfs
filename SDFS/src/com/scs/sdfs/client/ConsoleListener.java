@@ -37,6 +37,8 @@ public class ConsoleListener extends Thread{
 	private PeerConnection peerConnection;
 	private ClientManager clientManager = ClientManager.getClientManager();
 	
+	private boolean keepLooping = true;
+	
 	public ConsoleListener(SSLContext sslContext) {
 		super();
 		this.sslContext = sslContext;
@@ -45,7 +47,7 @@ public class ConsoleListener extends Thread{
 	public void run() {
 		System.out.println("Welcome to the SDFS Client Interface !");
 		
-		while(true){
+		while(keepLooping) {
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		    try {
 				String line = br.readLine();
@@ -68,7 +70,14 @@ public class ConsoleListener extends Thread{
 			System.out.println("Invalid command");
 		}
 		
-		Method method = Method.valueOf(tokens[0].toUpperCase());
+		Method method = null;
+		try {
+			 method = Method.valueOf(tokens[0].toUpperCase());
+		}
+		catch (IllegalArgumentException e) {
+			System.out.println("Invalid command!");
+			return;
+		}
 		
 		//process each method
 		switch (method) {
@@ -102,10 +111,11 @@ public class ConsoleListener extends Thread{
 			System.out.println("Usage: START <SERVER_IP>");
 		}
 		else {
-			if (new File(Constants.META_FILE).exists()) {
-				clientManager.replaceFileMap(Crypto.loadFromDisk(Constants.META_FILE));
+			String metaFile = clientManager.getFileStore() + File.separator + Constants.META_SUFFIX;
+			if (new File(metaFile).exists()) {
+				clientManager.replaceFileMap(Crypto.loadFromDisk(metaFile));
 			}
-			serverConnection = new ServerConnection(sslContext);
+			serverConnection = new ServerConnection(sslContext, tokens[1]);
 		}
 	}
 	
@@ -117,8 +127,16 @@ public class ConsoleListener extends Thread{
 		if(tokens.length != 2) {
 			System.out.println("Usage: GET <fileUID>");
 		}
+		else if (serverConnection == null) {
+			System.out.println("No connection!");
+		}
 		else {
 			String uid = tokens[1];
+			if (Constants.META_SUFFIX.equals(uid)) {
+				System.out.println("Please try a different name!");
+				return;
+			}
+			
 			CommandArgument get = null;
 			
 			if (clientManager.hasValidDelegationToken(uid, Method.GET)) {
@@ -137,7 +155,8 @@ public class ConsoleListener extends Thread{
 			}
 			else {
 				if (response.code == ErrorCode.OK) {
-					Utils.writeToFile(Constants.DATA_FOLDER + File.separator + uid, response.data);
+					String fileStorePath = Constants.FILE_FOLDER + File.separator + clientManager.getAlias();
+					Utils.writeToFile(fileStorePath + File.separator + uid, response.data);
 				} else {
 					System.out.println("Error: " + response.code);
 				}
@@ -153,9 +172,21 @@ public class ConsoleListener extends Thread{
 		if (tokens.length != 2) {
 			System.out.println("Usage: PUT <fileUID>");
 		}
+		else if (serverConnection == null) {
+			System.out.println("No connection!");
+		}
 		else {
 			String uid = tokens[1];
-			byte[] fileContents = Utils.readFromFile(Constants.DATA_FOLDER + File.separator + uid);
+			if (Constants.META_SUFFIX.equals(uid)) {
+				System.out.println("Please try a different name!");
+				return;
+			}
+			
+			String fileStorePath = Constants.FILE_FOLDER + File.separator + clientManager.getAlias();
+			byte[] fileContents = Utils.readFromFile(fileStorePath + File.separator + uid);
+			if (fileContents == null) {
+				return;
+			}
 			
 			boolean addFileEntry = false;
 			CommandArgument put = null;
@@ -225,8 +256,6 @@ public class ConsoleListener extends Thread{
 			
 			long startEpoch = System.currentTimeMillis();
 			
-			peerConnection = new PeerConnection(sslContext, host, port);
-			
 			DelegationPrimitive primitive = new DelegationPrimitive(clientManager.getAlias(), target, 
 					uid, rights.contains(Right.READ), rights.contains(Right.WRITE), 
 					rights.contains(Right.DELEGATE), startEpoch, duration);
@@ -236,6 +265,8 @@ public class ConsoleListener extends Thread{
 			
 			DelegationToken token;
 			CommandArgument delegate;
+			
+			clientManager.printAccessList();
 			
 			if(clientManager.isOwner(uid)){
 				token = new DelegationToken(primitive, certificate, null, privateKey);
@@ -247,10 +278,11 @@ public class ConsoleListener extends Thread{
 				delegate = new CmdDelegateRightsArgument(uid, token);
 			}
 			else{
-				System.out.println("Client has no delegate access to file [" + "]" + uid);
+				System.out.println("Client has no delegate access to file [" + uid + "]");
 				return;
 			}
 
+			peerConnection = new PeerConnection(sslContext, host, port);
 			peerConnection.sendCommand(delegate);
 			CmdDelegateRightsResponse response = (CmdDelegateRightsResponse) peerConnection.readFromServer();
 			peerConnection.close();
@@ -272,10 +304,17 @@ public class ConsoleListener extends Thread{
 			System.out.println("Usage: CLOSE");
 		}
 		else{
-			System.out.println("Exiting .... ");
-			Crypto.saveToDisk(Constants.META_FILE, clientManager.getSerializedFileMap(), true);
-			serverConnection.close();
+			keepLooping = false;
 			clientManager.close();
+		}
+	}
+	
+	public void stopConsoleThread() {
+		if (serverConnection != null) {
+			try {
+				serverConnection.close();
+			} catch (Exception e) {
+			}
 		}
 	}
 }

@@ -23,14 +23,18 @@ public class Client {
 	 * creates the listener socket which waits for delegation messages from other clients
 	 */
 	public void createDelegationServer(){
-		new DelegationServerThread(sslContext, port);
+		DelegationServerThread delServThread = new DelegationServerThread(sslContext, port);
+		ClientManager.getClientManager().setDelegationThread(delServThread);
+		delServThread.start();
 	}
 
 	/**
 	 * creates the console listener
 	 */
 	public void createConsoleListener(){
-		new ConsoleListener(sslContext).start();
+		ConsoleListener console = new ConsoleListener(sslContext);
+		ClientManager.getClientManager().setConsoleListener(console);
+		console.start();
 	}
 	
 	/**
@@ -52,10 +56,20 @@ public class Client {
 		createConsoleListener();
 	}
 	
+	private void addShutdownHook() {
+		Runtime.getRuntime().addShutdownHook(new Thread(){
+			public void run() {
+				System.out.println("Shutting down...");
+				ClientManager.getClientManager().close();
+			}
+		});
+	}
+	
 	public Client(String alias, int port, String password) {
 		this.alias = alias;
 		this.password = password;
 		this.port = port;
+		addShutdownHook();
 		init();
 	}
 

@@ -4,7 +4,9 @@ import java.io.File;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -12,6 +14,7 @@ import com.scs.sdfs.Constants;
 import com.scs.sdfs.KeyStoreHelper;
 import com.scs.sdfs.Method;
 import com.scs.sdfs.delegation.DelegationToken;
+import com.scs.sdfs.server.Crypto;
 import com.scs.sdfs.server.MetaFile;
 
 public class ClientManager {
@@ -23,9 +26,12 @@ public class ClientManager {
 	private String password;
 	
 	private DelegationServerThread delegator;
+	private ConsoleListener console;
 	
 	private Certificate certificate;
 	private PrivateKey privateKey;
+	
+	private String fileStorePath;
 	
 	// contains mappings between file UIDs and access rights (null or DelegationTokens)
 	private Map<String, DelegationToken> FILE_ACCESS_RIGHTS_TABLE;
@@ -47,8 +53,10 @@ public class ClientManager {
 		FILE_ACCESS_RIGHTS_TABLE = new HashMap<String, DelegationToken>();
 		certificate = KeyStoreHelper.getCertificate(alias, password);
 		privateKey = KeyStoreHelper.getPrivateKey(alias, password);
-		if (!new File(Constants.FILE_FOLDER).exists()) {
-			new File(Constants.FILE_FOLDER).mkdirs();
+		
+		fileStorePath = Constants.FILE_FOLDER + File.separator + alias;
+		if (!new File(fileStorePath).exists()) {
+			new File(fileStorePath).mkdirs();
 		}
 	}
 	
@@ -68,8 +76,16 @@ public class ClientManager {
 		return privateKey;
 	}
 	
+	public String getFileStore() {
+		return fileStorePath;
+	}
+	
 	public void setDelegationThread(DelegationServerThread thread) {
 		delegator = thread;
+	}
+	
+	public void setConsoleListener(ConsoleListener thread) {
+		console = thread;
 	}
 
 	/**
@@ -185,5 +201,19 @@ public class ClientManager {
 	
 	public void close() {
 		delegator.stopServerThread();
+		console.stopConsoleThread();
+		String metaFile = fileStorePath + File.separator + Constants.META_SUFFIX;
+		Crypto.saveToDisk(metaFile, clientManager.getSerializedFileMap(), true);
+	}
+	
+	public void printAccessList() {
+		Set<String> uids = FILE_ACCESS_RIGHTS_TABLE.keySet();
+		Iterator<String> itr = uids.iterator();
+		while (itr.hasNext()) {
+			String uid = itr.next();
+			System.out.println(uid + " -> " +
+			((FILE_ACCESS_RIGHTS_TABLE.get(uid) == null)
+					? "Owned!" : (FILE_ACCESS_RIGHTS_TABLE.get(uid).primitive.source)));
+		}
 	}
 }

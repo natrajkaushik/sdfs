@@ -8,6 +8,8 @@ public class CmdGetFileArgument extends CommandArgument {
 	public String UID;
 	public DelegationToken token;
 	
+	public CmdGetFileArgument() {}
+	
 	public CmdGetFileArgument(String uid, DelegationToken token) {
 		this.UID = uid;
 		this.token = token;

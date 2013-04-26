@@ -22,8 +22,17 @@ public class ServerConnection {
 	private SSLSocket socket;
 	private Gson gson = new Gson();
 	
+	private String serverIp;
+	
 	public ServerConnection(SSLContext sslContext) {
 		this.sslContext = sslContext;
+		serverIp = Constants.LOCALHOST;
+		init();
+	}
+	
+	public ServerConnection(SSLContext sslContext, String ip) {
+		this.sslContext = sslContext;
+		serverIp = ip;
 		init();
 	}
 	
@@ -33,7 +42,7 @@ public class ServerConnection {
 	private void init(){
 		SSLSocketFactory factory = (SSLSocketFactory) sslContext.getSocketFactory();
 		try {
-			socket = (SSLSocket) factory.createSocket(Constants.LOCALHOST, Constants.SERVER_LISTENER_PORT);
+			socket = (SSLSocket) factory.createSocket(serverIp, Constants.SERVER_LISTENER_PORT);
 			socket.setNeedClientAuth(true);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -53,13 +62,6 @@ public class ServerConnection {
 		} catch (IOException e) {
 			System.err.println("Couldn't send command to server!");
 			e.printStackTrace();
-		}
-		
-		if(dos != null){
-			try {
-				dos.close();
-			} catch (IOException e) {
-			}
 		}
 	}
 	

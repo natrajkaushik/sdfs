@@ -10,6 +10,7 @@ import javax.net.ssl.SSLSocketFactory;
 
 import com.google.gson.Gson;
 import com.scs.sdfs.args.CommandArgument;
+import com.scs.sdfs.rspns.CmdDelegateRightsResponse;
 import com.scs.sdfs.rspns.CommandResponse;
 
 /**
@@ -57,13 +58,6 @@ public class PeerConnection {
 			System.err.println("Unable to send command to peer!");
 			e.printStackTrace();
 		}
-		
-		if (dos != null){
-			try {
-				dos.close();
-			} catch (IOException e) {
-			}
-		}
 	}
 	
 	/**
@@ -76,7 +70,7 @@ public class PeerConnection {
 		try {
 			dis = new DataInputStream(socket.getInputStream());
 			data = dis.readUTF();
-			return GSON.fromJson(data, CommandResponse.class);
+			return GSON.fromJson(data, CmdDelegateRightsResponse.class);
 		} catch (IOException e) {
 			System.err.println("Unable to read peer response!");
 			e.printStackTrace();

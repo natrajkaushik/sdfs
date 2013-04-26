@@ -5,7 +5,6 @@ import com.scs.sdfs.ErrorCode;
 public class CmdGetFileResponse extends CommandResponse {
 
 	public byte[] data;
-	public ErrorCode code;
 	
 	public CmdGetFileResponse() {
 		data = null;

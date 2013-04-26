@@ -3,7 +3,7 @@ package com.scs.sdfs;
 public class Constants {
 	public static final String KEY_DUMP_FOLDER = "./keydump";
 	
-	public static final int SERVER_LISTENER_PORT = 1443;
+	public static final int SERVER_LISTENER_PORT = 31337;
 	
 	public static final String KEY_STORE_TYPE = "PKCS12";
 	
@@ -25,8 +25,7 @@ public class Constants {
 	public static final String SYM_KEY_FMT = "AES";
 
 	public static final String META_FILE = "data/meta.info";
-
 	public static final String FILE_FOLDER = "data/files";
-
 	public static final String DATA_FOLDER = "data";
+	public static final String META_SUFFIX = "meta.info";
 }

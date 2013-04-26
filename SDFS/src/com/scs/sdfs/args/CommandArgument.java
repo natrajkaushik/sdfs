@@ -9,6 +9,8 @@ public abstract class CommandArgument {
 	
 	public Method command;
 	
+	public CommandArgument() {}
+	
 	public String toString() {
 		return gson.toJson(this);
 	}

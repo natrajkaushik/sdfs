@@ -79,7 +79,7 @@ public class SSLHelper {
 	 * sets the SSLContext
 	 */
 	public SSLContext getSSLContext(){
-		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, Constants.KEY_STORE_TYPE, keyStoreType);
+		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, keyStorePass, Constants.KEY_STORE_TYPE);
 		TrustManager[] trustManagers = this.getTrustManagers(Constants.TRUSTED_STORE_PATH, 
 				Constants.TRUSTED_STORE_PASSWORD, Constants.TRUSTED_STORE_TYPE);
 		return this.getSSLContext(keyManagers, trustManagers);

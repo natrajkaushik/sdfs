@@ -7,6 +7,8 @@ public class CmdDelegateRightsArgument extends CommandArgument{
 
 	public String uid;
 	public DelegationToken token;
+	
+	public CmdDelegateRightsArgument() {}
 
 	public CmdDelegateRightsArgument(String uid, DelegationToken token) {
 		this.uid = uid;

@@ -4,8 +4,6 @@ import com.scs.sdfs.ErrorCode;
 
 public class CmdDelegateRightsResponse extends CommandResponse {
 
-	public ErrorCode code;
-	
 	public CmdDelegateRightsResponse() {
 		code = ErrorCode.OK;
 	}

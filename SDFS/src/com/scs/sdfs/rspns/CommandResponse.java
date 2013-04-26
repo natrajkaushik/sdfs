@@ -8,6 +8,8 @@ public abstract class CommandResponse {
 	protected static transient final Gson gson = new Gson();
 
 	public ErrorCode code;
+	
+	public CommandResponse() {}
 
 	public String toString() {
 		return gson.toJson(this);
