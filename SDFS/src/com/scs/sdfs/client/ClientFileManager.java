@@ -3,7 +3,7 @@ package com.scs.sdfs.client;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.scs.sdfs.client.ConsoleListener.Methods;
+import com.scs.sdfs.Method;
 import com.scs.sdfs.delegation.DelegationToken;
 
 public class ClientFileManager {
@@ -79,7 +79,7 @@ public class ClientFileManager {
 	 * @param uid of file
 	 * @return if Client has valid delegation rights
 	 */
-	public boolean hasValidDelegationToken(String uid, Methods method){
+	public boolean hasValidDelegationToken(String uid, Method method){
 		if(FILE_ACCESS_RIGHTS_TABLE.containsKey(uid) && !isOwner(uid)){
 			DelegationToken token = FILE_ACCESS_RIGHTS_TABLE.get(uid);
 			if(hasTokenExpired(token)){
@@ -116,7 +116,7 @@ public class ClientFileManager {
 	 * @param method
 	 * @return
 	 */
-	public DelegationToken getDelegationToken(String uid, Methods method){
+	public DelegationToken getDelegationToken(String uid, Method method){
 		if(hasValidDelegationToken(uid, method)){
 			return FILE_ACCESS_RIGHTS_TABLE.get(uid);
 		}

@@ -87,7 +87,15 @@ public class DelegationConnection {
 	 * @return process CommandArgument and return CommandResponse
 	 */
 	private CommandResponse processArgument(CommandArgument argument){
-		return null;
+		CommandResponse response = null;
+		switch(argument.command) {
+		case DELEGATE:
+		case _DELEGATE:
+			break;
+		default:
+			System.err.println("Invalid command received!");
+		}
+		return response;
 	}
 	
 	/**

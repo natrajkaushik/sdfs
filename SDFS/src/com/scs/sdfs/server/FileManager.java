@@ -23,7 +23,7 @@ public class FileManager {
 	private static final String META_FILE = "data/meta.info";
 	
 	/**
-	 * This maps the file UID to the metadata object for that file.
+	 * This maps the file fileUID to the metadata object for that file.
 	 */
 	public HashMap<String, MetaFile> files;
 

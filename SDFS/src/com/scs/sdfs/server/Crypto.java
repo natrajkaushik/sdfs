@@ -22,7 +22,7 @@ import javax.crypto.spec.SecretKeySpec;
 import com.scs.sdfs.Constants;
 import com.scs.sdfs.delegation.DelegationVerifier;
 
-public class Crypto {
+public abstract class Crypto {
 
 	public static final int IV_LEN = 16;
 	

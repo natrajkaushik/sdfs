@@ -2,9 +2,9 @@ package com.scs.sdfs.delegation;
 
 import java.security.cert.Certificate;
 
-public class DelegationVerifier {
+public abstract class DelegationVerifier {
 	
-	private static Certificate rootCert = null;
+	private static Certificate rootCert;
 	
 	public static void init(Certificate rootCertificate) {
 		rootCert = rootCertificate;
@@ -46,10 +46,10 @@ public class DelegationVerifier {
 	}
 
 	/**
-	 * Check if token is for the right UID
+	 * Check if token is for the right fileUID
 	 */
 	private static boolean checkCorrectUid(String UID, DelegationToken token) {
-		return UID.equals(token.primitive.UID);
+		return UID.equals(token.primitive.fileUID);
 	}
 	
 	/**
@@ -61,7 +61,7 @@ public class DelegationVerifier {
 	
 	/**
 	 * Verifies that the token either comes from the owner of 
-	 * the UID, or has a valid chain going back to the owner.
+	 * the fileUID, or has a valid chain going back to the owner.
 	 */
 	private static boolean checkAuthorizedIssuer(String owner, String client, String UID, 
 												DelegationToken token, boolean write, long instant) {

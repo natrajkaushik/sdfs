@@ -1,5 +1,6 @@
 package com.scs.sdfs.args;
 
+import com.scs.sdfs.Method;
 import com.scs.sdfs.delegation.DelegationToken;
 
 public class CmdPutFileArgument extends CommandArgument {
@@ -12,5 +13,6 @@ public class CmdPutFileArgument extends CommandArgument {
 		this.UID = uid;
 		this.data = data;
 		this.token = token;
+		this.command = Method.PUT;
 	}
 }

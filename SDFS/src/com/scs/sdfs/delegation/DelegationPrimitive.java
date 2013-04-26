@@ -5,7 +5,7 @@ public class DelegationPrimitive {
 	public String source;
 	public String target;
 	
-	public String UID;
+	public String fileUID;
 	public boolean canRead;
 	public boolean canWrite;
 	public boolean canDelegate;
@@ -18,7 +18,7 @@ public class DelegationPrimitive {
 			long startEpoch, long duration) {
 		this.source = source;
 		this.target = target;
-		this.UID = uID;
+		this.fileUID = uID;
 		this.canRead = canRead;
 		this.canWrite = canWrite;
 		this.canDelegate = canDelegate;

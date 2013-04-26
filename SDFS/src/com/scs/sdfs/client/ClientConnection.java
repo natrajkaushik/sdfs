@@ -9,8 +9,8 @@ import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 import com.google.gson.Gson;
+import com.scs.sdfs.Method;
 import com.scs.sdfs.args.CommandArgument;
-import com.scs.sdfs.client.ConsoleListener.Methods;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
 import com.scs.sdfs.rspns.CmdPutFileResponse;
 import com.scs.sdfs.rspns.CommandResponse;
@@ -77,7 +77,7 @@ public class ClientConnection {
 	 * reads response from client
 	 * @return CommandResponse
 	 */
-	public CommandResponse readFromServer(Methods method){
+	public CommandResponse readFromServer(Method method){
 		DataInputStream dis = null;
 		try {
 			dis = new DataInputStream(socket.getInputStream());
