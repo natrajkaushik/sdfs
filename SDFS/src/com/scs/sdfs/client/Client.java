@@ -16,13 +16,7 @@ public class Client {
 	private int port; //port number on which client is listening for delegation requests
 	
 	private SSLContext sslContext;
-
-	/**
-	 * creates the console listener
-	 */
-	public void createConsoleListener(){
-		new ConsoleListener().start();
-	}
+	private ClientFileManager clientFileManager;
 	
 	/**
 	 * creates the listener socket which waits for delegation messages from other clients
@@ -30,6 +24,15 @@ public class Client {
 	public void createDelegationServer(){
 		new DelegationServerThread(sslContext, port).start();
 	}
+
+	/**
+	 * creates the console listener
+	 */
+	public void createConsoleListener(){
+		new ConsoleListener(sslContext).start();
+	}
+	
+	
 	
 	/**
 	 * Initializes the Client
@@ -43,6 +46,11 @@ public class Client {
 			System.err.println("Unable to initialize Crypto");
 			System.exit(1);
 		}
+		
+		createDelegationServer();
+		createConsoleListener();
+		
+		clientFileManager = ClientFileManager.getClientFileManager(alias);
 	}
 	
 	

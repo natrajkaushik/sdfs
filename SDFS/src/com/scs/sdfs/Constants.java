@@ -11,4 +11,6 @@ public class Constants {
 	
 	public static final String ROOT_ALIAS = "root";
 	public static final String SERVER_ALIAS = "server";
+	
+	public static final String LOCALHOST = "localhost";
 }
