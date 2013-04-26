@@ -1,5 +1,6 @@
 package com.scs.sdfs.delegation;
 
+import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
 
@@ -26,4 +27,14 @@ public class DelegationToken {
 	 * source is the owner
 	 */
 	public DelegationToken parentToken;
+
+	public DelegationToken(DelegationPrimitive primitive, Certificate sourceCert, 
+			DelegationToken parentToken, PrivateKey privateKey) {
+		super();
+		this.primitive = primitive;
+		this.sourceCert = sourceCert;
+		this.parentToken = parentToken;
+	}
+	
+	
 }
