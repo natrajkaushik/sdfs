@@ -10,6 +10,9 @@ import java.io.InputStreamReader;
 public class ConsoleListener extends Thread{
 
 	public void run() {
+		
+		System.out.println("Welcome to the SDFS Client Interface !");
+		
 		while(true){
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		    try {

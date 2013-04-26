@@ -18,11 +18,13 @@ import com.scs.sdfs.SSLHelper;
 public class DelegationServerThread extends Thread{
 
 	private SSLContext sslContext;
+	private int port;
 	
 	
-	public DelegationServerThread(SSLContext sslContext) {
+	public DelegationServerThread(SSLContext sslContext, int port) {
 		super();
 		this.sslContext = sslContext;
+		this.port = port;
 	}
 
 	@Override
@@ -30,7 +32,7 @@ public class DelegationServerThread extends Thread{
 		SSLServerSocketFactory factory = (SSLServerSocketFactory) sslContext.getServerSocketFactory();
 		SSLServerSocket serverSocket = null;
 		try {
-			serverSocket = (SSLServerSocket) factory.createServerSocket(Constants.SERVER_LISTENER_PORT);
+			serverSocket = (SSLServerSocket) factory.createServerSocket(port);
 			serverSocket.setNeedClientAuth(true);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

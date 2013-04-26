@@ -19,10 +19,6 @@ import javax.net.ssl.TrustManagerFactory;
  */
 public class SSLHelper {
 
-	public static final String TRUSTED_STORE_PATH = "./store/trusted.jks";
-	public static final String TRUSTED_STORE_PASSWORD = "server";
-	public static final String TRUSTED_STORE_TYPE = "JKS";
-	
 	public static final String KEY_STORE_TYPE = "PKCS12";
 	
 	// KeyStore parameters
@@ -119,7 +115,8 @@ public class SSLHelper {
 	 */
 	public SSLContext getSSLContext(){
 		KeyManager[] keyManagers = this.getKeyManagers(keyStorePath, KEY_STORE_TYPE, keyStoreType);
-		TrustManager[] trustManagers = this.getTrustManagers(TRUSTED_STORE_PATH, TRUSTED_STORE_PASSWORD, TRUSTED_STORE_TYPE);
+		TrustManager[] trustManagers = this.getTrustManagers(Constants.TRUSTED_STORE_PATH, 
+				Constants.TRUSTED_STORE_PASSWORD, Constants.TRUSTED_STORE_TYPE);
 		return this.getSSLContext(keyManagers, trustManagers);
 	}
 	
