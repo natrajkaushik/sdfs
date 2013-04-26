@@ -45,9 +45,6 @@ public class FileManager {
 
 	public boolean init(String password) {
 		this.keystorePassword = password;
-		if (!Crypto.init(keystorePassword)) {
-			return false;
-		}
 		if (new File(META_FILE).exists()) {
 			loadMetadata();
 		}

@@ -11,6 +11,7 @@ import java.security.KeyStoreException;
 import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.cert.Certificate;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
@@ -25,10 +26,11 @@ public class Crypto {
 	private static final String HASH_ALGO = "SHA-512";
 	
 	private static final String CERT_FOLDER = "cert";
-	private static final String P12_FILE = "server.p12";
-	private static final String SERVER_ALIAS = "server";
 	
+	private static String p12File = "";
+	private static String selfAlias = "";
 	private static String keystorePassword = "";
+	private static Certificate rootCert = null;
 	
 	private static KeyStore keystore;
 
@@ -56,10 +58,14 @@ public class Crypto {
 		System.out.println(new String(decrypted));
 	}
 	
-	public static boolean init(String password) {
+	public static boolean init(String password, Certificate rootCertificate, String alias, String keyFile) {
 		keystorePassword = password;
+		rootCert = rootCertificate;
+		selfAlias = alias;
+		p12File = keyFile;
+		
 		try {
-			File keystoreFile = new File(CERT_FOLDER + File.separator + P12_FILE);
+			File keystoreFile = new File(CERT_FOLDER + File.separator + p12File);
 			keystore = KeyStore.getInstance(KEYSTORE_FMT);
 			keystore.load(new FileInputStream(keystoreFile), password.toCharArray());
 			return true;
@@ -85,22 +91,12 @@ public class Crypto {
 	 * Loads and decrypts encrypted file contents using the provided private key
 	 */
 	public static byte[] loadFromDisk(String filename, Key key) {
-		try {
-			File inFile = new File(filename);
-			if (inFile.exists()) {
-				byte[] encryptedData = null;
-				encryptedData = new byte[(int) inFile.length()];
-				FileInputStream fis = new FileInputStream(inFile);
-				fis.read(encryptedData);
-				fis.close();
-				return decryptData(encryptedData, key);
-			}
-			System.err.println("Encrypted file not found: " + filename);
-		} catch (IOException e) {
-			System.err.println("Error reading encrypted file: " + filename);
-			e.printStackTrace();
+		File inFile = new File(filename);
+		if (inFile.exists()) {
+			byte[] encryptedData = readFromDisk(inFile);
+			return decryptData(encryptedData, key);
 		}
-		
+		System.err.println("Encrypted file not found: " + filename);
 		return null;
 	}
 	
@@ -108,22 +104,12 @@ public class Crypto {
 	 * Loads and decrypts encrypted file contents using decryption of the provided secret key
 	 */
 	public static byte[] loadFromDisk(String filename, byte[] key) {
-		try {
-			File inFile = new File(filename);
-			if (inFile.exists()) {
-				byte[] encryptedData = null;
-				encryptedData = new byte[(int) inFile.length()];
-				FileInputStream fis = new FileInputStream(inFile);
-				fis.read(encryptedData);
-				fis.close();
-				return decryptData(encryptedData, getDecryptedKey(key));
-			}
-			System.err.println("Encrypted file not found: " + filename);
-		} catch (IOException e) {
-			System.err.println("Error reading encrypted file: " + filename);
-			e.printStackTrace();
+		File inFile = new File(filename);
+		if (inFile.exists()) {
+			byte[] encryptedData = readFromDisk(inFile);
+			return decryptData(encryptedData, getDecryptedKey(key));
 		}
-		
+		System.err.println("Encrypted file not found: " + filename);
 		return null;
 	}
 	
@@ -140,23 +126,11 @@ public class Crypto {
 	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite, Key key) {
 		File outFile = new File(filename);
 		if (!outFile.exists() || overwrite) {
-			try {
-				byte[] encryptedData = encryptData(data, key);
-				if (encryptedData != null) {
-					FileOutputStream fos = new FileOutputStream(outFile, false);
-					fos.write(encryptedData);
-					fos.close();
-					return true;
-				}
-			} catch (IOException e) {
-				System.err.println("Error saving to file: " + filename);
-				e.printStackTrace();
-			} 
-		}
-		else {
+			byte[] encryptedData = encryptData(data, key);
+			return writeToDisk(encryptedData, outFile);
+		} else {
 			System.err.println("Cannot overwrite file: " + filename);
 		}
-		
 		return false;
 	}
 	
@@ -166,18 +140,8 @@ public class Crypto {
 	public static boolean saveToDisk(String filename, byte[] data, byte[] key, boolean overwrite) {
 		File outFile = new File(filename);
 		if (!outFile.exists() || overwrite) {
-			try {
-				byte[] encryptedData = encryptData(data, getDecryptedKey(key));
-				if (encryptedData != null) {
-					FileOutputStream fos = new FileOutputStream(outFile, false);
-					fos.write(encryptedData);
-					fos.close();
-					return true;
-				}
-			} catch (IOException e) {
-				System.err.println("Error saving to file: " + filename);
-				e.printStackTrace();
-			} 
+			byte[] encryptedData = encryptData(data, getDecryptedKey(key));
+			return writeToDisk(encryptedData, outFile);
 		}
 		else {
 			System.err.println("Cannot overwrite file: " + filename);
@@ -204,7 +168,7 @@ public class Crypto {
 	 */
 	private static PublicKey getPublicKey() {
 		try {
-			return keystore.getCertificate(SERVER_ALIAS).getPublicKey();
+			return keystore.getCertificate(selfAlias).getPublicKey();
 		} catch (KeyStoreException e) {
 			System.err.println("Error loading public key!");
 			e.printStackTrace();
@@ -217,7 +181,7 @@ public class Crypto {
 	 */
 	private static PrivateKey getPrivateKey() {
 		try {
-			Key key = keystore.getKey(SERVER_ALIAS, keystorePassword.toCharArray());
+			Key key = keystore.getKey(selfAlias, keystorePassword.toCharArray());
 			return (PrivateKey) key;
 		} catch (GeneralSecurityException e) {
 			System.err.println("Error loading private key!");
@@ -311,5 +275,41 @@ public class Crypto {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	/**
+	 * Reads data from file
+	 */
+	private static byte[] readFromDisk(File inFile) {
+		// TODO synchronize access for each file
+		try {
+			byte[] data = new byte[(int) inFile.length()];
+			FileInputStream fis = new FileInputStream(inFile);
+			fis.read(data);
+			fis.close();
+		}
+		catch (IOException e) {
+			System.err.println("Error reading file: " + inFile.getName());
+		}
+		return null;
+	}
+	
+	/**
+	 * Writes data out to file
+	 */
+	private static boolean writeToDisk(byte[] data, File outFile) {
+		// TODO synchronize access for each file
+		try {
+			if (data != null) {
+				FileOutputStream fos = new FileOutputStream(outFile, false);
+				fos.write(data);
+				fos.close();
+				return true;
+			}
+		} catch (IOException e) {
+			System.err.println("Error saving to file: " + outFile.getName());
+			e.printStackTrace();
+		}
+		return false;
 	}
 }
