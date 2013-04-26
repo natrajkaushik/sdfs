@@ -185,7 +185,7 @@ public class ConsoleListener extends Thread{
 			
 			long duration;
 			try{
-				duration = Long.valueOf(tokens[3]);
+				duration = Long.valueOf(tokens[3]) * 1000;
 			}catch(NumberFormatException e){
 				System.out.println("DURATION has to be a number");
 				return;
@@ -197,7 +197,6 @@ public class ConsoleListener extends Thread{
 			}
 			
 			long startEpoch = System.currentTimeMillis();
-			//long endEpoch = startEpoch + (duration * 1000);
 			
 			clientConnection = new ClientConnection(sslContext, host, port);
 			
@@ -236,14 +235,13 @@ public class ConsoleListener extends Thread{
 			String client = tokens[2];
 			long duration;
 			try{
-				duration = Long.valueOf(tokens[3]);
+				duration = Long.valueOf(tokens[3]) * 1000;
 			}catch(NumberFormatException e){
 				System.out.println("DURATION has to be a number");
 				return;
 			}
 			
 			long startEpoch = System.currentTimeMillis();
-			//long endEpoch = startEpoch + (duration * 1000);
 			
 			Set<Rights> rights = new HashSet<Rights>();
 			for(int i = 4; i < tokens.length; i++){

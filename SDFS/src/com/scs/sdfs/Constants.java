@@ -15,4 +15,11 @@ public class Constants {
 	public static final String SERVER_ALIAS = "server";
 	
 	public static final String LOCALHOST = "localhost";
+
+	public static final String ASYM_ENC_ALGO = "RSA";
+	public static final String SYM_ENC_ALGO = "AES/CBC/PKCS5Padding";
+	public static final String HASH_ALGO = "SHA-256";
+	public static final String SIGN_ALGO = "SHA256withRSA";
+	
+	public static final String SYM_KEY_FMT = "AES";
 }

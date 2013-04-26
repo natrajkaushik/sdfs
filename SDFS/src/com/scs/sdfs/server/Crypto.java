@@ -24,13 +24,6 @@ import com.scs.sdfs.delegation.DelegationVerifier;
 
 public class Crypto {
 
-	private static final String KEYSTORE_FMT = "PKCS12";
-	private static final String SYM_KEY_FMT = "AES";
-	
-	private static final String ASYM_ENC_ALGO = "RSA";
-	private static final String SYM_ENC_ALGO = "AES/CBC/PKCS5Padding";
-	private static final String HASH_ALGO = "SHA-256";
-	
 	public static final int IV_LEN = 16;
 	
 	private static String p12File = "";
@@ -84,7 +77,7 @@ public class Crypto {
 		
 		try {
 			File keystoreFile = new File(Constants.KEY_DUMP_FOLDER + File.separator + p12File);
-			keystore = KeyStore.getInstance(KEYSTORE_FMT);
+			keystore = KeyStore.getInstance(Constants.KEY_STORE_TYPE);
 			keystore.load(new FileInputStream(keystoreFile), password.toCharArray());
 			lockMap = new HashMap<String, Object>();
 			if (rootCert != null) {				// no need for delegation verifier on the client
@@ -243,7 +236,7 @@ public class Crypto {
 			return null;
 		}
 		try {
-			Cipher cipher = Cipher.getInstance(ASYM_ENC_ALGO);
+			Cipher cipher = Cipher.getInstance(Constants.ASYM_ENC_ALGO);
 			cipher.init(Cipher.ENCRYPT_MODE, key);
 			return cipher.doFinal(data);
 		}
@@ -263,7 +256,7 @@ public class Crypto {
 			return null;
 		}
 		try {
-			Cipher cipher = Cipher.getInstance(ASYM_ENC_ALGO);
+			Cipher cipher = Cipher.getInstance(Constants.ASYM_ENC_ALGO);
 			cipher.init(Cipher.DECRYPT_MODE, key);
 			cipher.update(data);
 			return cipher.doFinal();
@@ -284,8 +277,8 @@ public class Crypto {
 			return null;
 		}
 		try {
-			Cipher cipher = Cipher.getInstance(SYM_ENC_ALGO);
-			SecretKeySpec secret = new SecretKeySpec(key, SYM_KEY_FMT);
+			Cipher cipher = Cipher.getInstance(Constants.SYM_ENC_ALGO);
+			SecretKeySpec secret = new SecretKeySpec(key, Constants.SYM_KEY_FMT);
 			cipher.init(Cipher.ENCRYPT_MODE, secret);
 			System.arraycopy(cipher.getIV(), 0, iv, 0, IV_LEN);
 			return cipher.doFinal(data);
@@ -305,9 +298,9 @@ public class Crypto {
 			return null;
 		}
 		try {
-			Cipher cipher = Cipher.getInstance(SYM_ENC_ALGO);
+			Cipher cipher = Cipher.getInstance(Constants.SYM_ENC_ALGO);
 			IvParameterSpec ivSpec = new IvParameterSpec(iv);
-			SecretKeySpec secret = new SecretKeySpec(key, SYM_KEY_FMT);
+			SecretKeySpec secret = new SecretKeySpec(key, Constants.SYM_KEY_FMT);
 			cipher.init(Cipher.DECRYPT_MODE, secret, ivSpec);
 			return cipher.doFinal(data);
 		}
@@ -317,10 +310,13 @@ public class Crypto {
 		}
 		return null;
 	}
-	
+
+	/**
+	 * Computes the digest of the provided data
+	 */
 	private static byte[] digestData(byte[] data) {
 		try {
-			return MessageDigest.getInstance(HASH_ALGO).digest(data);
+			return MessageDigest.getInstance(Constants.HASH_ALGO).digest(data);
 		} catch (NoSuchAlgorithmException e) {
 			System.err.println("Unable to digest data!");
 			e.printStackTrace();

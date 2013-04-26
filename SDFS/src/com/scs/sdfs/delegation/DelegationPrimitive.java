@@ -18,7 +18,7 @@ public class DelegationPrimitive {
 			long startEpoch, long duration) {
 		this.source = source;
 		this.delegate = delegate;
-		UID = uID;
+		this.UID = uID;
 		this.canRead = canRead;
 		this.canWrite = canWrite;
 		this.canDelegate = canDelegate;

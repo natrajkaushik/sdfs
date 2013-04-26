@@ -8,10 +8,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.Enumeration;
-
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 
 /**
  * Contains methods to access JAVA KeyStores and TrustedStores
@@ -45,20 +43,20 @@ public class KeyStoreHelper {
 		
 		try {
 			keyStore.load(keyStoreStream, keyStorePassword);
-			Enumeration<String> aliases = keyStore.aliases();
-			while(aliases.hasMoreElements()){
-				System.out.println(aliases.nextElement());
-			}
+			// Enumeration<String> aliases = keyStore.aliases();
+			// while(aliases.hasMoreElements()){
+				// System.out.println(aliases.nextElement());
+			// }
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (CertificateException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
-		} catch (KeyStoreException e) {
+		} // catch (KeyStoreException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			// e.printStackTrace();
+		// }
 		
 		return keyStore;
 	}
