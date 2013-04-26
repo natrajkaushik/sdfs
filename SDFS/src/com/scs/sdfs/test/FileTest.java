@@ -20,7 +20,7 @@ public class FileTest {
 		CmdPutFileArgument parg1 = new CmdPutFileArgument("file1", "This is file 1".getBytes(), null);
 		System.out.println(fm.commandPutFile("node a", parg1).code.msg);
 		
-		CmdPutFileArgument parg2 = new CmdPutFileArgument("file2", "This is file 2".getBytes(), null);
+		CmdPutFileArgument parg2 = new CmdPutFileArgument("file2", "This is new file 2".getBytes(), null);
 		System.out.println(fm.commandPutFile("node a", parg2).code.msg);
 		
 		CmdPutFileArgument parg3 = new CmdPutFileArgument("file3", "This is file 3".getBytes(), null);
@@ -32,7 +32,7 @@ public class FileTest {
 		if (rsp1.code == ErrorCode.OK)
 			System.out.println(new String(rsp1.data));
 		
-		CmdGetFileArgument garg2 = new CmdGetFileArgument("file3", null);
+		CmdGetFileArgument garg2 = new CmdGetFileArgument("file2", null);
 		CmdGetFileResponse rsp2 = fm.commandGetFile("node a", garg2);
 		System.out.println(rsp2.code.msg);
 		if (rsp2.code == ErrorCode.OK)

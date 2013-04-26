@@ -9,6 +9,7 @@ import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.Certificate;
@@ -109,15 +110,26 @@ public class Crypto {
 	}
 	
 	/**
-	 * Loads and decrypts encrypted file contents using the provided private key
+	 * Loads and decrypts encrypted file contents using the hash of the provided 
+	 * private key as a symmetric encryption key. The IV is read from the first
+	 * few bytes of the encrypted file.
 	 */
 	public static byte[] loadFromDisk(String filename, Key key) {
 		File inFile = new File(filename);
 		if (inFile.exists()) {
-			byte[] encryptedData = readFromDisk(inFile);
-			return decryptData(encryptedData, key);
+			byte[] contents = readFromDisk(inFile);
+			if (contents.length > IV_LEN) {
+				byte[] iv = new byte[IV_LEN];
+				byte[] encryptedData = new byte[contents.length-IV_LEN];
+				System.arraycopy(contents, 0, iv, 0, IV_LEN);
+				System.arraycopy(contents, IV_LEN, encryptedData, 0, (contents.length-IV_LEN));
+				return decryptData(encryptedData, digestData(key.getEncoded()), iv);
+			} else {
+				System.err.println("Insufficient data to load metadata!");
+			}
+		} else {
+			System.err.println("Encrypted file not found: " + filename);
 		}
-		System.err.println("Encrypted file not found: " + filename);
 		return null;
 	}
 	
@@ -138,17 +150,22 @@ public class Crypto {
 	 * Encrypts and saves data to file using the default public key
 	 */
 	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite) {
-		return saveToDisk(filename, data, overwrite, getPublicKey());
+		return saveToDisk(filename, data, overwrite, getPrivateKey());
 	}
 	
 	/**
-	 * Encrypts and saves data to file using the provided public key
+	 * Encrypts and saves data to file using the hash of the provided public key
+	 * as a symmetric decryption key. The IV is prepended to the encrypted file contents.
 	 */
 	public static boolean saveToDisk(String filename, byte[] data, boolean overwrite, Key key) {
 		File outFile = new File(filename);
 		if (!outFile.exists() || overwrite) {
-			byte[] encryptedData = encryptData(data, key);
-			return writeToDisk(encryptedData, outFile);
+			byte[] iv = new byte[IV_LEN];
+			byte[] encryptedData = encryptData(data, digestData(key.getEncoded()), iv);
+			byte[] contents = new byte[IV_LEN + encryptedData.length];
+			System.arraycopy(iv, 0, contents, 0, IV_LEN);
+			System.arraycopy(encryptedData, 0, contents, IV_LEN, encryptedData.length);
+			return writeToDisk(contents, outFile);
 		} else {
 			System.err.println("Cannot overwrite file: " + filename);
 		}
@@ -181,15 +198,7 @@ public class Crypto {
 	 * encrypted with the private key of the current node.
 	 */
 	public static byte[] getKeyFromData(byte[] data) {
-		try {
-			MessageDigest digest = MessageDigest.getInstance(HASH_ALGO);
-			return encryptData(digest.digest(data), getPublicKey());
-		}
-		catch (GeneralSecurityException e) {
-			System.err.println("Error hashing data!");
-			e.printStackTrace();
-		}
-		return null;
+		return encryptData(digestData(data), getPublicKey());
 	}
 
 	/**
@@ -307,6 +316,16 @@ public class Crypto {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	
+	private static byte[] digestData(byte[] data) {
+		try {
+			return MessageDigest.getInstance(HASH_ALGO).digest(data);
+		} catch (NoSuchAlgorithmException e) {
+			System.err.println("Unable to digest data!");
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 	/**

@@ -139,7 +139,6 @@ public class FileManager {
 		}
 		else {
 			files = GSON.fromJson(new String(metadata), new TypeToken<HashMap<String, MetaFile>>(){}.getType());
-			System.out.println(files);
 			System.out.println("Loaded " + files.size() + " files!");
 			return;
 		}
@@ -152,7 +151,6 @@ public class FileManager {
 		}
 		if (new File(DATA_FOLDER).exists() || new File(DATA_FOLDER).mkdir()) {
 			byte[] data = GSON.toJson(files).getBytes();
-			System.out.println(new String(data));
 			if (!Crypto.saveToDisk(META_FILE, data, true)) {
 				System.err.println("Unable to save metadata to file!");
 			}
