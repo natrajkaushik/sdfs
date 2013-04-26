@@ -7,7 +7,9 @@ import java.io.IOException;
 import javax.net.ssl.SSLSocket;
 
 import com.google.gson.Gson;
+import com.scs.sdfs.args.CmdDelegateRightsArgument;
 import com.scs.sdfs.args.CommandArgument;
+import com.scs.sdfs.rspns.CmdDelegateRightsResponse;
 import com.scs.sdfs.rspns.CommandResponse;
 
 public class DelegationConnection {
@@ -29,15 +31,11 @@ public class DelegationConnection {
 		DataOutputStream dos = null;		
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		try {
 			dos.writeUTF(response.toString());
 			dos.flush();
 		} catch (IOException e) {
-			
+			System.err.println("Unable to send response!");
+			e.printStackTrace();
 		}
 		
 		if(dos != null){
@@ -54,18 +52,11 @@ public class DelegationConnection {
 	 */
 	public CommandArgument readFromClient(){
 		DataInputStream dis = null;
-		try {
-			dis = new DataInputStream(socket.getInputStream());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
 		String data = null;
 		try {
+			dis = new DataInputStream(socket.getInputStream());
 			data = dis.readUTF();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -87,7 +78,22 @@ public class DelegationConnection {
 	 * @return process CommandArgument and return CommandResponse
 	 */
 	private CommandResponse processArgument(CommandArgument argument){
-		return null;
+		CommandResponse response = null;
+		switch(argument.command) {
+		case DELEGATE:
+		case _DELEGATE:
+			CmdDelegateRightsArgument delArg = (CmdDelegateRightsArgument) argument;
+			ClientManager clientManager = ClientManager.getClientManager();
+			if (peerCN.equals(delArg.token.primitive.source) && 
+				clientManager.getAlias().equals(delArg.token.primitive.target)) {
+				clientManager.addDelegationToken(delArg.uid, delArg.token);
+			}
+			response = new CmdDelegateRightsResponse();
+			break;
+		default:
+			System.err.println("Invalid command received!");
+		}
+		return response;
 	}
 	
 	/**
@@ -99,9 +105,7 @@ public class DelegationConnection {
 				socket.close();
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
-
 }

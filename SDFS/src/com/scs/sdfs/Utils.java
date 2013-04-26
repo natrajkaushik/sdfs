@@ -1,6 +1,7 @@
 package com.scs.sdfs;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -55,36 +56,40 @@ public class Utils {
 			System.out.println("File does not exist [" + filePath + "]");
 		}
 		
-        RandomAccessFile _file = null;
+		long _length = file.length();
+		int length = (int) _length;
+		if (length != _length) {
+			System.out.println("File size exceeds 2GB");
+			return null;
+		}
+
+		byte[] data = new byte[length];
+		
+		FileInputStream fis = null;
+		
 		try {
-			_file = new RandomAccessFile(file, "r");
+			fis = new FileInputStream(file);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
-
-        try {
-            long _length = _file.length();
-            int length = (int) _length;
-            if (length != _length) {
-            	throw new IOException("File size >= 2 GB");
-            }
-
-            byte[] data = new byte[length];
-            _file.readFully(data);
-            return data;
-        }catch(IOException e){
-        	return null;
-        }
-        finally {
-        	if(_file != null){
-            try {
-				_file.close();
+		
+		try {
+			int bytesRead = fis.read(data);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		if(fis != null){
+			try {
+				fis.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-        	}
-        }
+		}
+		
+		return data;
+		
+		
 	}
 
 }
