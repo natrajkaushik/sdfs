@@ -108,7 +108,7 @@ public class FileManager {
 					if (iv != null) {
 						System.arraycopy(iv, 0, meta.fileIv, 0, Crypto.IV_LEN);
 						response.code = ErrorCode.OK;
-						System.out.println("Put " + arg.uid + " to " + client);
+						System.out.println("Put " + arg.uid + " for " + client);
 					} else {
 						response.code = ErrorCode.FILE_NOT_SAVED;
 					}
@@ -124,6 +124,7 @@ public class FileManager {
 					System.arraycopy(iv, 0, newFile.fileIv, 0, Crypto.IV_LEN);
 					response.code = ErrorCode.OK;
 					files.put(arg.uid, newFile);
+					System.out.println("Put " + arg.uid + " for " + client);
 				} else {
 					response.code = ErrorCode.FILE_NOT_SAVED;
 				}
