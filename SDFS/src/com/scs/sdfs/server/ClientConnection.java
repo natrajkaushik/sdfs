@@ -59,7 +59,6 @@ public class ClientConnection extends Thread{
 				continue;
 			}
 			
-			System.out.println(data);
 			CommandArgument argument = null;
 			
 			try {

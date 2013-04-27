@@ -28,7 +28,7 @@ public abstract class DelegationVerifier {
 	 * Check if token presented by the right client
 	 */
 	private static boolean checkRightClient(String client, DelegationToken token) {
-		return client.equals(token.primitive.target);
+		return client.equalsIgnoreCase(token.primitive.target);
 	}
 	
 	/**
@@ -65,7 +65,7 @@ public abstract class DelegationVerifier {
 	 */
 	private static boolean checkAuthorizedIssuer(String owner, String client, String UID, 
 												DelegationToken token, boolean write, long instant) {
-		return (owner.equals(token.primitive.source) || 
+		return (owner.equalsIgnoreCase(token.primitive.source) || 
 				((token.parentToken != null) && token.parentToken.primitive.canDelegate && 
 						validateToken(owner, token.primitive.source, UID, token.parentToken, write, instant)));
 	}

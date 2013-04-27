@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSocket;
@@ -35,14 +36,17 @@ public class Server{
 			System.out.println("Server has started");
 			while(true) {
 				socket = (SSLSocket) serverSocket.accept();
-				String peerPrincipal = socket.getSession().getPeerPrincipal().getName();
-				String peerCN = null;
-				if(peerPrincipal != null && !peerPrincipal.trim().isEmpty()){
-					peerCN = SSLHelper.getCNFromPrincipal(peerPrincipal);
+				try {
+					String peerPrincipal = socket.getSession().getPeerPrincipal().getName();
+					String peerCN = null;
+					if(peerPrincipal != null && !peerPrincipal.trim().isEmpty()){
+						peerCN = SSLHelper.getCNFromPrincipal(peerPrincipal);
+					}
+					ClientConnection clientConnection = new ClientConnection(socket, peerCN);
+					clientConnection.start();
+				} catch (SSLPeerUnverifiedException e) {
+					// System.err.println("Didn't finish verifying peer!");
 				}
-				
-				ClientConnection clientConnection = new ClientConnection(socket, peerCN);
-				clientConnection.start();
 			}
 		} catch (IOException e) {
 			// e.printStackTrace();

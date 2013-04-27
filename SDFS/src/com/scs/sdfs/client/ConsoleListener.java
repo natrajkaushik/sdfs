@@ -25,7 +25,6 @@ import com.scs.sdfs.delegation.DelegationToken;
 import com.scs.sdfs.rspns.CmdDelegateRightsResponse;
 import com.scs.sdfs.rspns.CmdGetFileResponse;
 import com.scs.sdfs.rspns.CommandResponse;
-import com.scs.sdfs.server.Crypto;
 
 /**
  * Thread listens to console 
@@ -111,10 +110,6 @@ public class ConsoleListener extends Thread{
 			System.out.println("Usage: START <SERVER_IP>");
 		}
 		else {
-			String metaFile = clientManager.getFileStore() + File.separator + Constants.META_SUFFIX;
-			if (new File(metaFile).exists()) {
-				clientManager.replaceFileMap(Crypto.loadFromDisk(metaFile));
-			}
 			serverConnection = new ServerConnection(sslContext, tokens[1]);
 		}
 	}
@@ -225,13 +220,14 @@ public class ConsoleListener extends Thread{
 	}
 	
 	private void handleDelegate(String[] tokens, boolean star) {
-		if(tokens.length < 5){
-			System.out.println("Usage: DELEGATE <fileUID> <CLIENT> <DURATION> <[RIGHTS]>");
+		if(tokens.length < 6){
+			System.out.println("Usage: DELEGATE <fileUID> <PEER> <PEER_IP:PORT> <DURATION> <[RIGHTS]>");
 		}else{
 			String uid = tokens[1];
-			String target = tokens[2];
+			String target = tokens[2].replaceAll(" ", "_");
+			String address = tokens[3];
 			
-			String[] clientAddress = target.split(":");
+			String[] clientAddress = address.split(":");
 			String host = clientAddress[0];
 			int port;
 			try{
@@ -243,14 +239,14 @@ public class ConsoleListener extends Thread{
 			
 			long duration;
 			try{
-				duration = Long.valueOf(tokens[3]) * 1000;
+				duration = Long.valueOf(tokens[4]) * 1000;
 			}catch(NumberFormatException e){
 				System.out.println("DURATION has to be a number");
 				return;
 			}
 			
 			Set<Right> rights = new HashSet<Right>();
-			for(int i = 4; i < tokens.length; i++){
+			for(int i = 5; i < tokens.length; i++){
 				rights.add(Right.valueOf(tokens[i].toUpperCase()));
 			}
 			
@@ -265,8 +261,6 @@ public class ConsoleListener extends Thread{
 			
 			DelegationToken token;
 			CommandArgument delegate;
-			
-			clientManager.printAccessList();
 			
 			if(clientManager.isOwner(uid)){
 				token = new DelegationToken(primitive, certificate, null, privateKey);
@@ -288,7 +282,7 @@ public class ConsoleListener extends Thread{
 			peerConnection.close();
 			
 			if (response != null && response.code == ErrorCode.OK) {
-				System.out.println("Delated successfully!");
+				System.out.println("Delegated successfully!");
 			} else {
 				System.out.println("Error while delegating!");
 			}

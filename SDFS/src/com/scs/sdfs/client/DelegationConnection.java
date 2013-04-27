@@ -84,9 +84,12 @@ public class DelegationConnection {
 		case _DELEGATE:
 			CmdDelegateRightsArgument delArg = (CmdDelegateRightsArgument) argument;
 			ClientManager clientManager = ClientManager.getClientManager();
-			if (peerCN.equals(delArg.token.primitive.source) && 
-				clientManager.getAlias().equals(delArg.token.primitive.target)) {
+			if (peerCN.equalsIgnoreCase(delArg.token.primitive.source) && 
+				clientManager.getAlias().equalsIgnoreCase(delArg.token.primitive.target)) {
 				clientManager.addDelegationToken(delArg.uid, delArg.token);
+				System.out.println("Received delegate token for " + delArg.uid);
+			} else {
+				System.out.println("Rejecting token as peer didn't match!");
 			}
 			response = new CmdDelegateRightsResponse();
 			break;

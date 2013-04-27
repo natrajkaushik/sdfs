@@ -50,7 +50,11 @@ public class Client {
 			System.exit(1);
 		}
 		
-		ClientManager.getClientManager(alias, password);
+		ClientManager manager = ClientManager.getClientManager(alias, password);
+		String metaFile = manager.getFileStore() + File.separator + Constants.META_SUFFIX;
+		if (new File(metaFile).exists()) {
+			manager.replaceFileMap(Crypto.loadFromDisk(metaFile));
+		}
 		
 		createDelegationServer();
 		createConsoleListener();

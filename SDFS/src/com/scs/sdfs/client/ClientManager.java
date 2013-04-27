@@ -5,7 +5,6 @@ import java.security.PrivateKey;
 import java.security.cert.Certificate;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 
 import com.google.gson.Gson;
@@ -15,11 +14,11 @@ import com.scs.sdfs.KeyStoreHelper;
 import com.scs.sdfs.Method;
 import com.scs.sdfs.delegation.DelegationToken;
 import com.scs.sdfs.server.Crypto;
-import com.scs.sdfs.server.MetaFile;
 
 public class ClientManager {
 	
 	private static final Gson GSON = new Gson();
+	private static final DelegationToken EMPTY = new DelegationToken();
 
 	private static ClientManager clientManager = null;
 	private String alias;
@@ -32,9 +31,10 @@ public class ClientManager {
 	private PrivateKey privateKey;
 	
 	private String fileStorePath;
+	private boolean hasShutDown = false;
 	
 	// contains mappings between file UIDs and access rights (null or DelegationTokens)
-	private Map<String, DelegationToken> FILE_ACCESS_RIGHTS_TABLE;
+	private HashMap<String, DelegationToken> FILE_ACCESS_RIGHTS_TABLE;
 	
 	public static ClientManager getClientManager(String alias, String password) {
 		if(clientManager == null){
@@ -92,7 +92,7 @@ public class ClientManager {
 	 * @param uid makes client owner of file (uid)
 	 */
 	public synchronized void makeOwner(String uid) {
-		FILE_ACCESS_RIGHTS_TABLE.put(uid, null);
+		FILE_ACCESS_RIGHTS_TABLE.put(uid, EMPTY);
 	}
 	
 	/**
@@ -123,7 +123,8 @@ public class ClientManager {
 	 * @return if Client is an owner of file
 	 */
 	public boolean isOwner(String uid){
-		return (FILE_ACCESS_RIGHTS_TABLE.containsKey(uid) && (FILE_ACCESS_RIGHTS_TABLE.get(uid) == null));
+		return (FILE_ACCESS_RIGHTS_TABLE.containsKey(uid) && 
+				((FILE_ACCESS_RIGHTS_TABLE.get(uid)).primitive == null));
 	}
 	
 	/**
@@ -189,21 +190,26 @@ public class ClientManager {
 	}
 	
 	public byte[] getSerializedFileMap() {
-		return GSON.toJson(FILE_ACCESS_RIGHTS_TABLE).getBytes();
+		String map = GSON.toJson(FILE_ACCESS_RIGHTS_TABLE);
+		return map.getBytes();
 	}
 	
 	public void replaceFileMap(byte[] data) {
 		if (data != null && data.length > 0) {
 			FILE_ACCESS_RIGHTS_TABLE = GSON.fromJson(new String(data), 
-					new TypeToken<HashMap<String, MetaFile>>(){}.getType());
+					new TypeToken<HashMap<String, DelegationToken>>(){}.getType());
+			System.out.println("Loaded " + FILE_ACCESS_RIGHTS_TABLE.size() + " entries!");
 		}
 	}
 	
 	public void close() {
-		delegator.stopServerThread();
-		console.stopConsoleThread();
-		String metaFile = fileStorePath + File.separator + Constants.META_SUFFIX;
-		Crypto.saveToDisk(metaFile, clientManager.getSerializedFileMap(), true);
+		if (!hasShutDown) {
+			hasShutDown = true;
+			delegator.stopServerThread();
+			console.stopConsoleThread();
+			String metaFile = fileStorePath + File.separator + Constants.META_SUFFIX;
+			Crypto.saveToDisk(metaFile, clientManager.getSerializedFileMap(), true);
+		}
 	}
 	
 	public void printAccessList() {
@@ -212,7 +218,7 @@ public class ClientManager {
 		while (itr.hasNext()) {
 			String uid = itr.next();
 			System.out.println(uid + " -> " +
-			((FILE_ACCESS_RIGHTS_TABLE.get(uid) == null)
+			((FILE_ACCESS_RIGHTS_TABLE.get(uid).primitive == null)
 					? "Owned!" : (FILE_ACCESS_RIGHTS_TABLE.get(uid).primitive.source)));
 		}
 	}

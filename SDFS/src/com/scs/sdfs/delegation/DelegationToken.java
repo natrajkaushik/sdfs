@@ -1,9 +1,13 @@
 package com.scs.sdfs.delegation;
 
+import java.io.ByteArrayInputStream;
 import java.security.GeneralSecurityException;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 
 import com.google.gson.Gson;
 import com.scs.sdfs.Constants;
@@ -25,7 +29,7 @@ public class DelegationToken {
 	/**
 	 * Certificate of the source of this token
 	 */
-	public Certificate sourceCert;
+	public byte[] sourceCert;
 
 	/**
 	 * Parent of the current token, which authorized
@@ -37,9 +41,14 @@ public class DelegationToken {
 	public DelegationToken(DelegationPrimitive primitive, Certificate sourceCert, 
 			DelegationToken parentToken, PrivateKey privateKey) {
 		this.primitive = primitive;
-		this.sourceCert = sourceCert;
 		this.parentToken = parentToken;
 		this.primitiveSignature = null;
+		
+		try {
+			this.sourceCert = sourceCert.getEncoded();
+		} catch (CertificateEncodingException e) {
+			System.err.println("Invalid format certificate!");
+		}
 		
 		fitPrimitive();
 		signToken(privateKey);
@@ -85,11 +94,12 @@ public class DelegationToken {
 	public boolean hasValidSignnature(Certificate rootCert) {
 		try {
 			Signature verifier = Signature.getInstance(Constants.SIGN_ALGO);
-			verifier.initVerify(sourceCert);
+			Certificate signerCert = buildCertificate(sourceCert);
+			verifier.initVerify(signerCert);
 			verifier.update(GSON.toJson(primitive).getBytes());
 			if (verifier.verify(primitiveSignature)) {
 				try {
-					sourceCert.verify(rootCert.getPublicKey());
+					signerCert.verify(rootCert.getPublicKey());
 					return true;
 				} catch (GeneralSecurityException e) {
 					System.err.println("Unable to verify token signer's certificate! " + primitive.source);
@@ -107,5 +117,15 @@ public class DelegationToken {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	
+	private Certificate buildCertificate(byte[] certData) {
+		try {
+			CertificateFactory cf = CertificateFactory.getInstance("X.509");
+			return cf.generateCertificate(new ByteArrayInputStream(certData));
+		} catch (CertificateException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 }
