@@ -38,7 +38,7 @@ public class PeerConnection {
 		SSLSocketFactory factory = (SSLSocketFactory) sslContext.getSocketFactory();
 		try {
 			socket = (SSLSocket) factory.createSocket(host, port);
-			socket.setNeedClientAuth(true);
+			socket.startHandshake();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

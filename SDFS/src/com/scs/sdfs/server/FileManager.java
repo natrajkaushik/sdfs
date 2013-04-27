@@ -63,15 +63,16 @@ public class FileManager {
 			response.code = ErrorCode.INVALID_ARGUMENT;
 		}
 		else {
-			if (files.containsKey(arg.UID)) {
-				MetaFile meta = files.get(arg.UID);
+			if (files.containsKey(arg.uid)) {
+				MetaFile meta = files.get(arg.uid);
 				long now = System.currentTimeMillis();
 				if (meta.owner.equals(client) ||
-						DelegationVerifier.validateToken(meta.owner, client, arg.UID, arg.token, false, now)) {
+						DelegationVerifier.validateToken(meta.owner, client, arg.uid, arg.token, false, now)) {
 					File file = new File(Constants.FILE_FOLDER + File.separator + meta.diskName);
 					if (file.exists()) {
 						response.data = Crypto.loadFromDisk(file.getAbsolutePath(), meta.fileKey, meta.fileIv);
 						response.code = ErrorCode.OK;
+						System.out.println("Delivered " + arg.uid + " to " + client);
 					} else {
 						response.code = ErrorCode.FILE_DELETED;
 					}
@@ -107,6 +108,7 @@ public class FileManager {
 					if (iv != null) {
 						System.arraycopy(iv, 0, meta.fileIv, 0, Crypto.IV_LEN);
 						response.code = ErrorCode.OK;
+						System.out.println("Put " + arg.uid + " to " + client);
 					} else {
 						response.code = ErrorCode.FILE_NOT_SAVED;
 					}

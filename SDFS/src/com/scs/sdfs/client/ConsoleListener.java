@@ -188,7 +188,7 @@ public class ConsoleListener extends Thread{
 			
 			if (clientManager.hasValidDelegationToken(uid, Method.PUT)) {
 				DelegationToken token = clientManager.getDelegationToken(uid, Method.PUT);
-				put = new CmdGetFileArgument(uid, token);
+				put = new CmdPutFileArgument(uid, fileContents, token);
 			}
 			else {
 				put = new CmdPutFileArgument(uid, fileContents, null);

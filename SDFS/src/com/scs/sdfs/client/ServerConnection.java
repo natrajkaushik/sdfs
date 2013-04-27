@@ -43,7 +43,7 @@ public class ServerConnection {
 		SSLSocketFactory factory = (SSLSocketFactory) sslContext.getSocketFactory();
 		try {
 			socket = (SSLSocket) factory.createSocket(serverIp, Constants.SERVER_LISTENER_PORT);
-			socket.setNeedClientAuth(true);
+			socket.startHandshake();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
